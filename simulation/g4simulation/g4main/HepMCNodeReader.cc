@@ -289,6 +289,7 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
           particle->set_py((*fiter)->momentum().py() * mom_factor);
           particle->set_pz((*fiter)->momentum().pz() * mom_factor);
           particle->set_barcode((*fiter)->barcode());
+          particle->set_parent_id(*((*fiter)->production_vertex()->particles_in_const_begin()).pdg_id());
 
           ineve->AddParticle(vtxindex, particle);
 
