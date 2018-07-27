@@ -19,6 +19,8 @@
 #include <Geant4/G4PrimaryParticle.hh>
 #include <Geant4/G4VUserPrimaryParticleInformation.hh>
 
+#include <iostream>
+
 using namespace std;
 
 const int VERBOSE = 0;
@@ -61,8 +63,10 @@ void PHG4TruthTrackingAction::PreUserTrackingAction( const G4Track* track) {
   ti->set_track_id( trackid );
 
   ti->set_parent_id(track->GetParentID());
+  std::cout<<"FRAN source parent: "<<track->GetParentID()<<'\n';
   if ( PHG4TrackUserInfoV1* p = dynamic_cast<PHG4TrackUserInfoV1*>(track->GetUserInformation()) ) {
     ti->set_parent_id( p->GetUserParentId() );
+    std::cout<<"FRAN source parent: "<<track->GetParentID()<<'\n';
   }
 
   ti->set_primary_id(trackid);

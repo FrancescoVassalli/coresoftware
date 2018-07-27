@@ -271,7 +271,7 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
                << endl;
           exit(1);
         }
-
+        std::cout<<"In node reader"<<std::endl;
         // For pile-up simulation: vertex position
         vtxindex = ineve->AddVtx(xpos, ypos, zpos, time);
         int trackid = -1;
@@ -285,11 +285,14 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
 
           PHG4Particle *particle = new PHG4Particlev1();
           particle->set_pid((*fiter)->pdg_id());
+          std::cout<<(*fiter)->pdg_id()<<"\n \t";
           particle->set_px((*fiter)->momentum().px() * mom_factor);
           particle->set_py((*fiter)->momentum().py() * mom_factor);
           particle->set_pz((*fiter)->momentum().pz() * mom_factor);
           particle->set_barcode((*fiter)->barcode());
-          particle->set_parent_id((*fiter)->production_vertex()->particles_in_const_begin()->pdg_id());
+          const HepMC::GenVertex *parentVert = (*fiter)->production_vertex();
+          HepMC::GenParticle *parentparitcle = *(parentVert->particles_in_const_begin());
+          particle->set_parent_id(parentparitcle->pdg_id());
 
           ineve->AddParticle(vtxindex, particle);
 
