@@ -32,7 +32,7 @@ PHG4TruthTrackingAction::PHG4TruthTrackingAction( PHG4TruthEventAction* eventAct
 {}
 
 void PHG4TruthTrackingAction::PreUserTrackingAction( const G4Track* track) {
-   
+  cout<<"Entering pre user action"<<endl; 
   int trackid = 0;
   if (track->GetParentID()) {
     // secondaries get negative user ids and increment downward between geant subevents
@@ -63,12 +63,11 @@ void PHG4TruthTrackingAction::PreUserTrackingAction( const G4Track* track) {
   ti->set_track_id( trackid );
 
   ti->set_parent_id(track->GetParentID());
-  std::cout<<"FRAN source parent: "<<track->GetParentID()<<'\n';
   if ( PHG4TrackUserInfoV1* p = dynamic_cast<PHG4TrackUserInfoV1*>(track->GetUserInformation()) ) {
     ti->set_parent_id( p->GetUserParentId() );
-    std::cout<<"FRAN source parent: "<<track->GetParentID()<<'\n';
   }
 
+  std::cout<<"FRAN source parent: "<<track->GetParentID()<<'\n';
   ti->set_primary_id(trackid);
   if ( PHG4TrackUserInfoV1* p = dynamic_cast<PHG4TrackUserInfoV1*>(track->GetUserInformation()) ) {
     if (track->GetParentID()) {
