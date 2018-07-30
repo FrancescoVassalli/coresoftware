@@ -67,7 +67,7 @@ void PHG4TruthTrackingAction::PreUserTrackingAction( const G4Track* track) {
     ti->set_parent_id( p->GetUserParentId() );
   }
 
-  std::cout<<"FRAN source parent: "<<track->GetParentID()<<'\n';
+  std::cout<<"FRAN source parent: "<<track->GetParentID()<<" with particle track id:"<<trackid<<'\n';
   ti->set_primary_id(trackid);
   if ( PHG4TrackUserInfoV1* p = dynamic_cast<PHG4TrackUserInfoV1*>(track->GetUserInformation()) ) {
     if (track->GetParentID()) {
