@@ -8,10 +8,12 @@
  * \date $Date: $
  */
 
-#ifndef PHFieldConfig_H_
-#define PHFieldConfig_H_
+#ifndef PHFIELD_PHFIELDCONFIG_H
+#define PHFIELD_PHFIELDCONFIG_H
 
 #include <phool/PHObject.h>
+
+#include <iostream>
 #include <string>
 
 /*!
@@ -19,7 +21,7 @@
 class PHFieldConfig : public PHObject
 {
  public:
-  virtual ~PHFieldConfig();
+  virtual ~PHFieldConfig(){}
 
   /** identify Function from PHObject
    @param os Output Stream
@@ -56,7 +58,7 @@ class PHFieldConfig : public PHObject
 
   virtual void set_field_config(FieldConfigTypes fieldConfig);
 
-  virtual const std::string & get_filename() const;
+  virtual const std::string& get_filename() const;
 
   virtual void set_filename(const std::string& filename);
 
@@ -83,11 +85,11 @@ class PHFieldConfig : public PHObject
 
  protected:
   //! pure virtual interface class. not for direct use
-  PHFieldConfig();
+  PHFieldConfig(){}
 
   static const std::string kInvalid_FileName;
 
   ClassDef(PHFieldConfig, 1)
 };
 
-#endif /* PHFieldConfig_H_ */
+#endif

@@ -2,23 +2,13 @@
 //  Author: Matthias Messer
 
 #include "PHRawDataNode.h"
+
+#include "PHIOManager.h"
 #include "PHRawOManager.h"
 
-PHRawDataNode::PHRawDataNode()
-  : length(0)
-  , ID(0)
-  , wordLength(0)
-  , hitFormat(0)
-{
-}
+#include <Event/phenixTypes.h>
 
-PHRawDataNode::~PHRawDataNode()
-{
-  // set the data poitner to 0 so
-  // the dtor of the PHDataNode parent class doesn't try
-  // to delete it
-  setData(nullptr);
-}
+using namespace std;
 
 PHRawDataNode::PHRawDataNode(PHDWORD* d, const string& n,
                              const int l, const int i, const int w, const int h)
@@ -28,6 +18,14 @@ PHRawDataNode::PHRawDataNode(PHDWORD* d, const string& n,
   , wordLength(w)
   , hitFormat(h)
 {
+}
+
+PHRawDataNode::~PHRawDataNode()
+{
+  // set the data poitner to 0 so
+  // the dtor of the PHDataNode parent class doesn't try
+  // to delete it
+  setData(nullptr);
 }
 
 bool PHRawDataNode::write(PHIOManager* IOManager, const string&)

@@ -1,18 +1,18 @@
-#ifndef PHG4CEmcTestBeamDetector_h
-#define PHG4CEmcTestBeamDetector_h
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4DETECTORS_PHG4CEMCTESTBEAMDETECTOR_H
+#define G4DETECTORS_PHG4CEMCTESTBEAMDETECTOR_H
 
-#include "g4main/PHG4Detector.h"
+#include <g4main/PHG4Detector.h>
 
 #include <Geant4/G4Types.hh>
-#include <Geant4/globals.hh>
 
-#include <map>
+#include <string>                 // for string
 #include <vector>
 
-class G4Material;
-class G4Box;
 class G4LogicalVolume;
 class G4VPhysicalVolume;
+class PHCompositeNode;
 
 class PHG4CEmcTestBeamDetector: public PHG4Detector
 {
@@ -65,7 +65,6 @@ class PHG4CEmcTestBeamDetector: public PHG4Detector
   G4double w_dimension[3];
   G4double sc_dimension[3];
   G4double gap;
-  G4int num_planes_;
   G4double place_in_x;
   G4double place_in_y;
   G4double place_in_z;

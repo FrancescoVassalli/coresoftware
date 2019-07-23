@@ -3,11 +3,19 @@
 #include <TFile.h>
 #include <TNtuple.h>
 
+#include <CLHEP/Units/SystemOfUnits.h>
+
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 
-#include <iostream>
 #include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <iterator>
+#include <map>
+#include <set>
+#include <utility>
 
 using namespace std;
 using namespace CLHEP;  // units
@@ -51,8 +59,8 @@ PHField3DCartesian::PHField3DCartesian(const string &fname, const float magfield
   }
   cout << "\n================ Begin Construct Mag Field =====================" << endl;
   cout << "\n-----------------------------------------------------------"
-         << "\n      Magnetic field Module - Verbosity:"
-         << "\n-----------------------------------------------------------";
+       << "\n      Magnetic field Module - Verbosity:"
+       << "\n-----------------------------------------------------------";
 
   // open file
   TFile *rootinput = TFile::Open(filename.c_str());
@@ -62,8 +70,8 @@ PHField3DCartesian::PHField3DCartesian(const string &fname, const float magfield
     exit(1);
   }
   cout << "\n ---> "
-            "Reading the field grid from "
-         << filename << " ... " << endl;
+          "Reading the field grid from "
+       << filename << " ... " << endl;
   rootinput->cd();
 
   //  get root NTuple objects

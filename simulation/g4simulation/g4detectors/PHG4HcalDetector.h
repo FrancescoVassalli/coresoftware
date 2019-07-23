@@ -1,20 +1,22 @@
-#ifndef PHG4HcalDetector_h
-#define PHG4HcalDetector_h
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4DETECTORS_PHG4HCALDETECTOR_H
+#define G4DETECTORS_PHG4HCALDETECTOR_H
 
-#include "g4main/PHG4Detector.h"
+#include <g4main/PHG4Detector.h>
 
-#include <Geant4/globals.hh>
 #include <Geant4/G4Region.hh>
 #include <Geant4/G4SystemOfUnits.hh>
 #include <Geant4/G4Types.hh>
 
 #include <map>
-#include <set>
+#include <string>                       // for string
 
 class G4Material;
-class G4Tubs;
 class G4LogicalVolume;
+class G4UserSteppingAction;
 class G4VPhysicalVolume;
+class PHCompositeNode;
 
 class PHG4HcalDetector: public PHG4Detector
 {
@@ -71,7 +73,6 @@ class PHG4HcalDetector: public PHG4Detector
   G4Material* TrackerMaterial;
   G4double    TrackerThickness;
 
-  G4Tubs* cylinder_solid;
   G4LogicalVolume* cylinder_logic;
   G4VPhysicalVolume* cylinder_physi;
   std::map<const G4VPhysicalVolume*, int> box_vol;

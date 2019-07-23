@@ -1,15 +1,27 @@
 #include "PHG4CEmcTestBeamSubsystem.h"
 #include "PHG4CEmcTestBeamDetector.h"
+
 #include "PHG4EventActionClearZeroEdep.h"
 #include "PHG4CEmcTestBeamSteppingAction.h"
 
 #include <g4main/PHG4HitContainer.h>
+#include <g4main/PHG4Subsystem.h>            // for PHG4Subsystem
+
 #include <phool/getClass.h>
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>              // for PHIODataNode
+#include <phool/PHNode.h>                    // for PHNode
+#include <phool/PHNodeIterator.h>            // for PHNodeIterator
+#include <phool/PHObject.h>                  // for PHObject
 
-#include <Geant4/globals.hh>
 #include <Geant4/G4SystemOfUnits.hh>
+#include <Geant4/G4Types.hh>                 // for G4double
 
+#include <cstddef>                          // for NULL
 #include <sstream>
+
+class PHG4Detector;
+class PHG4SteppingAction;
 
 using namespace std;
 
@@ -17,8 +29,8 @@ using namespace std;
 PHG4CEmcTestBeamSubsystem::PHG4CEmcTestBeamSubsystem( const std::string &name, const int lyr ):
   PHG4Subsystem( name ),
   detector_( 0 ),
-  steppingAction_( NULL ),
-  eventAction_(NULL),
+  steppingAction_( nullptr ),
+  eventAction_(nullptr),
   place_in_x(0),
   place_in_y(0),
   place_in_z(0),
@@ -61,7 +73,7 @@ PHG4CEmcTestBeamSubsystem::Init( PHCompositeNode* topNode )
   detector_->SetAbsorberActive(absorberactive);
   detector_->BlackHole(blackhole);
   detector_->SuperDetector(superdetector);
-  detector_->OverlapCheck(overlapcheck);
+  detector_->OverlapCheck(CheckOverlap());
   if (active)
     {
       ostringstream nodename;

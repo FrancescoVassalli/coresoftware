@@ -1,10 +1,14 @@
-#ifndef PHG4CylinderGeom_H__
-#define PHG4CylinderGeom_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4DETECTORS_PHG4CYLINDERGEOM_H
+#define G4DETECTORS_PHG4CYLINDERGEOM_H
 
 #include <phool/PHObject.h>
 
 #include <phool/phool.h>
+
 #include <cmath>
+#include <iostream>          // for cout, ostream
 
 class PHParameters;
 
@@ -35,6 +39,8 @@ class PHG4CylinderGeom: public PHObject
 
   virtual void find_segment_center(const int segment_z_bin, const int segment_phi_bin, double location[]){PHOOL_VIRTUAL_WARN("find_sensor_center"); return;}
   virtual void find_strip_center(const int segment_z_bin, const int segment_phi_bin, const int strip_column, const int strip_index, double location[]){PHOOL_VIRTUAL_WARN("find_strip_center"); return;}
+ virtual void find_strip_index_values(const int segment_z_bin, const double ypos, const double zpos, int &strip_y_index, int &strip_z_index){PHOOL_VIRTUAL_WARN("find_strip_index_values"); return;}
+  virtual void find_strip_center_local_coords(const int segment_z_bin, const int strip_y_index, const int strip_z_index, double location[]){PHOOL_VIRTUAL_WARN("find_strip_center_localcoords"); return;}
 
   virtual double get_strip_y_spacing() const {PHOOL_VIRTUAL_WARN("get_strip_y_spacing"); return NAN;}
   virtual double get_strip_z_spacing() const {PHOOL_VIRTUAL_WARN("get_strip_z_spacing"); return NAN;}

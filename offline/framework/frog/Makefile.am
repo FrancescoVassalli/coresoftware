@@ -8,28 +8,34 @@ AM_CPPFLAGS = \
 
 lib_LTLIBRARIES = libFROG.la
 
-libFROG_la_LDFLAGS = \
-  `root-config --libs`
-
 libFROG_la_LIBADD = \
-  -L$(libdir) \
   -L$(OPT_SPHENIX)/lib \
   -lodbc++
 
 noinst_HEADERS = FROGLinkDef.h
 
-pkginclude_HEADERS =    \
-  pgsearch.h \
-  dCachesearch.h  \
+pkginclude_HEADERS = \
   FROG.h
 
-libFROG_la_SOURCES = \
-  pgsearch.cc  dCachesearch.cc \
-  FROG.cc       \
+if ! MAKEROOT6
+ROOT5DICTS = \
   FROG_Dict.cc
+libFROG_la_LDFLAGS = \
+  `root-config --libs`
+endif
 
-BUILT_SOURCES = testexternals.cc
+libFROG_la_SOURCES = \
+  $(ROOT5DICTS) \
+  FROG.cc
+
+%_Dict.cc: %.h %LinkDef.h
+	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
+
 noinst_PROGRAMS = testexternals
+
+BUILT_SOURCES = \
+  testexternals.cc
+
 testexternals_SOURCES = testexternals.cc
 
 testexternals_LDADD = \
@@ -42,12 +48,5 @@ testexternals.cc:
 	echo "  return 0;" >> $@
 	echo "}" >> $@
 
-# Rule for generating CINT dictionaries from class headers.
-FROG_Dict.cc:   \
-  pgsearch.h   \
-  FROG.h       \
-  FROGLinkDef.h
-	rootcint -f $@ @CINTDEFS@ -c  $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
-
 clean-local:
-	rm -f *Dict* *.pcm
+	rm -f *Dict* $(BUILT_SOURCES) *.pcm

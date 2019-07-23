@@ -1,24 +1,25 @@
-#ifndef PHG4SpacalPrototypeDetector_h
-#define PHG4SpacalPrototypeDetector_h
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+
+#ifndef G4DETECTORS_PHG4SPACALPROTOTYPEDETECTOR_H
+#define G4DETECTORS_PHG4SPACALPROTOTYPEDETECTOR_H
 
 #include "PHG4CylinderGeom_Spacalv3.h"
 
 #include <g4main/PHG4Detector.h>
 
-#include <Geant4/globals.hh>
-#include <Geant4/G4Region.hh>
 #include <Geant4/G4Types.hh>
 #include <Geant4/G4Transform3D.hh>
 
 #include <map>
-#include <set>
+#include <string>                       // for string
 #include <utility>
 
 class G4LogicalVolume;
-class G4Material;
 class G4UserLimits;
 class G4VPhysicalVolume;
 class G4VSolid;
+class PHCompositeNode;
 class PHParameters;
 
 class PHG4SpacalPrototypeDetector : public PHG4Detector

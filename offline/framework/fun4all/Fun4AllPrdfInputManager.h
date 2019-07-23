@@ -1,10 +1,11 @@
-#ifndef FUN4ALLPRDFINPUTMANAGER_H__
-#define FUN4ALLPRDFINPUTMANAGER_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef FUN4ALL_FUN4ALLPRDFINPUTMANAGER_H
+#define FUN4ALL_FUN4ALLPRDFINPUTMANAGER_H
 
 #include "Fun4AllInputManager.h"
 
 #include <string>
-#include <map>
 
 class Event;
 class Eventiterator;
@@ -14,12 +15,11 @@ class SyncObject;
 class Fun4AllPrdfInputManager : public Fun4AllInputManager
 {
  public:
-   Fun4AllPrdfInputManager(const std::string &name = "DUMMY", const std::string &topnodename = "TOP");
+  Fun4AllPrdfInputManager(const std::string &name = "DUMMY", const std::string &prdfnodename = "PRDF", const std::string &topnodename = "TOP");
   virtual ~Fun4AllPrdfInputManager();
   int fileopen(const std::string &filenam);
   int fileclose();
   int run(const int nevents = 0);
-  int isOpen() {return isopen;}
 
   void Print(const std::string &what = "ALL") const;
   int ResetEvent();
@@ -27,18 +27,16 @@ class Fun4AllPrdfInputManager : public Fun4AllInputManager
   int GetSyncObject(SyncObject **mastersync);
   int SyncIt(const SyncObject *mastersync);
 
- protected:
-  int OpenNextFile();
-  int segment;
-  int isopen;
-  int events_total;
-  int events_thisfile;
-  std::string topNodeName;
-  PHCompositeNode *topNode;
-  Event *evt;
-  Event *save_evt;
-  Eventiterator *eventiterator;
-  SyncObject* syncobject;
+ private:
+  int m_Segment;
+  int m_EventsTotal;
+  int m_EventsThisFile;
+  PHCompositeNode *m_topNode;
+  Event *m_Event;
+  Event *m_SaveEvent;
+  Eventiterator *m_EventIterator;
+  SyncObject *m_SyncObject;
+  std::string m_PrdfNodeName;
 };
 
-#endif /* __FUN4ALLPRDFINPUTMANAGER_H__ */
+#endif /* FUN4ALL_FUN4ALLPRDFINPUTMANAGER_H */

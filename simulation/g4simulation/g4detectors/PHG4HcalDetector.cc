@@ -2,28 +2,40 @@
 #include "PHG4CylinderGeomContainer.h"
 #include "PHG4CylinderGeomv3.h"
 
-#include <g4main/PHG4PhenixDetector.h>
+#include <g4main/PHG4Detector.h>           // for PHG4Detector
 #include <g4main/PHG4Utils.h>
 
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>                  // for PHNode
+#include <phool/PHNodeIterator.h>          // for PHNodeIterator
+#include <phool/PHObject.h>                // for PHObject
 #include <phool/getClass.h>
 
-#include <Geant4/G4Box.hh>
-#include <Geant4/G4Colour.hh>
 #include <Geant4/G4Cons.hh>
 #include <Geant4/G4ExtrudedSolid.hh>
 #include <Geant4/G4LogicalVolume.hh>
 #include <Geant4/G4Material.hh>
 #include <Geant4/G4PhysicalConstants.hh>
 #include <Geant4/G4PVPlacement.hh>
+#include <Geant4/G4RotationMatrix.hh>      // for G4RotationMatrix
+#include <Geant4/G4String.hh>              // for G4String
 #include <Geant4/G4SubtractionSolid.hh>
+#include <Geant4/G4SystemOfUnits.hh>       // for cm, deg
+#include <Geant4/G4ThreeVector.hh>         // for G4ThreeVector
+#include <Geant4/G4Transform3D.hh>         // for G4Transform3D
 #include <Geant4/G4Tubs.hh>
 #include <Geant4/G4TwoVector.hh>
-#include <Geant4/G4UnionSolid.hh>
 #include <Geant4/G4VisAttributes.hh>
 
+#include <cmath>                          // for sin, cos, sqrt, M_PI, asin
+#include <cstdlib>                        // for exit
+#include <iostream>                        // for operator<<, basic_ostream
 #include <sstream>
+#include <utility>                         // for pair
+#include <vector>                          // for vector
+
+class PHG4CylinderGeom;
 
 using namespace std;
 
@@ -37,22 +49,24 @@ int PHG4HcalDetector::INACTIVE = -100;
 //note this inactive thickness is ~1.5% of a radiation length
 PHG4HcalDetector::PHG4HcalDetector( PHCompositeNode *Node, const std::string &dnam, const int lyr ):
   PHG4Detector(Node, dnam),
+  TrackerMaterial(nullptr),
+  TrackerThickness(100 * cm),
+  cylinder_logic(nullptr),
+  cylinder_physi(nullptr),
+  radius(100 * cm),
+  length(100 * cm),
+  xpos(0 * cm),
+  ypos(0 * cm),
+  zpos(0 * cm),
   _sciTilt(0),
   _sciWidth(0.6*cm),
   _sciNum(100),
   _sciPhi0(0),
+  _region(nullptr),
   active(0),
   absorberactive(0),
   layer(lyr)
-{
-  //set the default radii
-  radius = 100 * cm;
-  TrackerThickness = 100 * cm;
-  length = 100 * cm;
-  xpos = 0 * cm;
-  ypos = 0 * cm;
-  zpos = 0 * cm;
-}
+{}
 
 //_______________________________________________________________
 //_______________________________________________________________

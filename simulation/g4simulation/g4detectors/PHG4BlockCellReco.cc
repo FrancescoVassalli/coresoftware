@@ -3,29 +3,34 @@
 #include "PHG4BlockGeom.h"
 #include "PHG4BlockCellGeomContainer.h"
 #include "PHG4BlockCellGeom.h"
+#include "PHG4Cell.h"                                   // for PHG4Cell, PHG...
 #include "PHG4Cellv1.h"
 #include "PHG4CellContainer.h"
+
 #include "PHG4CellDefs.h"
 
 #include <phparameter/PHParametersContainer.h>
-#include <phparameter/PHParameters.h>
+#include <phparameter/PHParameterContainerInterface.h>  // for PHParameterCo...
 
 #include <g4main/PHG4Hit.h>
 #include <g4main/PHG4HitContainer.h>
+
 #include <fun4all/Fun4AllReturnCodes.h>
-#include <fun4all/Fun4AllServer.h>
+#include <fun4all/SubsysReco.h>                         // for SubsysReco
+
 #include <phool/PHNodeIterator.h>
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>                               // for PHNode
+#include <phool/PHObject.h>                             // for PHObject
 #include <phool/getClass.h>
-
-#include<TROOT.h>
+#include <phool/phool.h>                                // for PHWHERE
 
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
-#include <limits>       // std::numeric_limits
+#include <vector>                                       // for vector
 
 using namespace std;
 
@@ -35,7 +40,6 @@ PHG4BlockCellReco::PHG4BlockCellReco(const string &name) :
   SubsysReco(name),
   PHParameterContainerInterface(name),
   sum_energy_g4hit(0),
-  _timer(PHTimeServer::get()->insert_new(name)),
   chkenergyconservation(0)
 {
   SetDefaultParameters();
@@ -114,7 +118,7 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
 
   }
 
-  if (verbosity > 0)
+  if (Verbosity() > 0)
   {
     geo->identify();
   }
@@ -234,7 +238,7 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
     
     // add geo object filled by different binning methods
     seggeo->AddLayerCellGeom(layerseggeo);
-    if (verbosity > 1)
+    if (Verbosity() > 1)
     {
       layerseggeo->identify();
     }
@@ -248,8 +252,6 @@ int PHG4BlockCellReco::InitRun(PHCompositeNode *topNode)
 int
 PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
 {
-  _timer.get()->restart();
-
   PHG4HitContainer *g4hit = findNode::getClass<PHG4HitContainer>(topNode, hitnodename.c_str());
   if (!g4hit)
   {
@@ -329,7 +331,7 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
 
         if (etabin[0] < 0)
         {
-          if (verbosity > 0)
+          if (Verbosity() > 0)
           {
             hiter->second->identify();
           }
@@ -379,7 +381,7 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
 
         if (intxbin == intxbinout && intetabin == intetabinout)   // single cell fired
         {
-          if (verbosity > 0) cout << "SINGLE CELL FIRED: " << intxbin << " " << intetabin << endl;
+          if (Verbosity() > 0) cout << "SINGLE CELL FIRED: " << intxbin << " " << intetabin << endl;
           vx.push_back(intxbin);
           veta.push_back(intetabin);
           vdedx.push_back(trklen);
@@ -400,7 +402,7 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
               bool yesno = line_and_rectangle_intersect(ax, ay, bx, by, cx, cy, dx, dy, &rr);
               if (yesno)
               {
-                if (verbosity > 0) cout << "CELL FIRED: " << ibp << " " << ibz << " " << rr << endl;
+                if (Verbosity() > 0) cout << "CELL FIRED: " << ibp << " " << ibz << " " << rr << endl;
                 vx.push_back(ibp);
                 veta.push_back(ibz);
                 vdedx.push_back(rr);
@@ -408,16 +410,16 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
             }
           }
         }
-        if (verbosity > 0) cout << "NUMBER OF FIRED CELLS = " << vx.size() << endl;
+        if (Verbosity() > 0) cout << "NUMBER OF FIRED CELLS = " << vx.size() << endl;
 
         double tmpsum = 0.;
         for (unsigned int ii = 0; ii < vx.size(); ii++)
         {
           tmpsum += vdedx[ii];
           vdedx[ii] = vdedx[ii] / trklen;
-          if (verbosity > 0) cout << "  CELL " << ii << "  dE/dX = " <<  vdedx[ii] << endl;
+          if (Verbosity() > 0) cout << "  CELL " << ii << "  dE/dX = " <<  vdedx[ii] << endl;
         }
-        if (verbosity > 0) cout << "    TOTAL TRACK LENGTH = " << tmpsum << " " << trklen << endl;
+        if (Verbosity() > 0) cout << "    TOTAL TRACK LENGTH = " << tmpsum << " " << trklen << endl;
 
 
         for (unsigned int i1 = 0; i1 < vx.size(); i1++)   // loop over all fired cells
@@ -462,7 +464,7 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
           {
             cells->AddCell(cellptarray[ibin]);
             numcells++;
-            if (verbosity > 1)
+            if (Verbosity() > 1)
             {
               cout << "Adding cell in bin x: " << ix
                    << " x: " << geo->get_xcenter(ix) * 180./M_PI
@@ -477,7 +479,7 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
         }
       }
 
-      if (verbosity > 0)
+      if (Verbosity() > 0)
       {
         cout << Name() << ": found " << numcells << " eta/x cells with energy deposition" << endl;
       }
@@ -490,7 +492,6 @@ PHG4BlockCellReco::process_event(PHCompositeNode *topNode)
     CheckEnergy(topNode);
   }
 
-  _timer.get()->stop();
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -762,7 +763,7 @@ PHG4BlockCellReco::CheckEnergy(PHCompositeNode *topNode)
 
   else
     {
-      if (verbosity > 0)
+      if (Verbosity() > 0)
 	{
 	  cout << Name() << ": sum hit energy: " << sum_energy_g4hit << " GeV" << endl;
 	  cout << Name() << ": sum cell energy: " << sum_energy_cells << " GeV" << endl;

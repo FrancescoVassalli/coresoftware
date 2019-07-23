@@ -10,17 +10,23 @@
 
 #include "RawTowerDeadMapLoader.h"
 
+#include <calobase/RawTowerDeadMap.h>
 #include <calobase/RawTowerDeadMapv1.h>
+#include <calobase/RawTowerDefs.h>
+
 #include <phparameter/PHParameters.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <fun4all/SubsysReco.h>
+
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>
 #include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>
 #include <phool/getClass.h>
 
 // boost headers
-#include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 // this is an ugly hack, the gcc optimizer has a bug which
 // triggers the uninitialized variable warning which
@@ -40,17 +46,13 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 using namespace std;
 
 RawTowerDeadMapLoader::RawTowerDeadMapLoader(const std::string &detector)
   : SubsysReco("RawTowerDeadMapLoader_" + detector)
   , m_detector(detector)
-  , m_deadmap(nullptr)
-{
-}
-
-RawTowerDeadMapLoader::~RawTowerDeadMapLoader()
 {
 }
 
@@ -141,7 +143,7 @@ int RawTowerDeadMapLoader::InitRun(PHCompositeNode *topNode)
           {
             cout << "add dead channel eta" << eta << " phi" << phi;
           }
-        } // if (*tokeniter == "eta")
+        }  // if (*tokeniter == "eta")
         else
         {
           if (Verbosity())
@@ -170,10 +172,8 @@ int RawTowerDeadMapLoader::InitRun(PHCompositeNode *topNode)
 
   if (Verbosity())
   {
-
-    cout << "RawTowerDeadMapLoader::" << m_detector << "::InitRun - loading dead map completed : " ;
+    cout << "RawTowerDeadMapLoader::" << m_detector << "::InitRun - loading dead map completed : ";
     m_deadmap->identify();
-
   }
   return Fun4AllReturnCodes::EVENT_OK;
 }

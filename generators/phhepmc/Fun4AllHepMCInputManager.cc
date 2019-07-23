@@ -1,40 +1,41 @@
 #include "Fun4AllHepMCInputManager.h"
 
+#include "PHHepMCGenEvent.h"
+#include "PHHepMCGenEventMap.h"
+
+#include <frog/FROG.h>
+
+#include <fun4all/Fun4AllInputManager.h>                  // for Fun4AllInpu...
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/Fun4AllServer.h>
 #include <fun4all/Fun4AllSyncManager.h>
+
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>                           // for PHIODataNode
+#include <phool/PHObject.h>                               // for PHObject
 #include <phool/getClass.h>
+#include <phool/phool.h>                                  // for PHWHERE
 #include <phool/recoConsts.h>
 
-#include <PHHepMCGenEvent.h>
-#include <PHHepMCGenEventMap.h>
-#include <ffaobjects/RunHeader.h>
-
-#include <frog/FROG.h>
-#include <phool/PHCompositeNode.h>
-#include <phool/PHDataNode.h>
-
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>                            // for GenParticle
+#include <HepMC/GenVertex.h>                              // for GenVertex
 #include <HepMC/IO_GenEvent.h>
+#include <HepMC/SimpleVector.h>                           // for FourVector
+#include <HepMC/Units.h>                                  // for CM, GEV
 
 #include <TPRegexp.h>
 #include <TString.h>
-
-#include <fstream>
-#include <iostream>
-#include <istream>
-#include <memory>
-#include <sstream>
 
 #include <boost/iostreams/filter/bzip2.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 
 #include <cstdlib>
-#include <memory>
-
-#include <phool/PHRandomSeed.h>
-
-#include <gsl/gsl_const.h>
+#include <fstream>
+#include <iostream>
+#include <map>                                            // for _Rb_tree_it...
+#include <sstream>
+#include <vector>                                         // for vector
 
 using namespace std;
 
@@ -42,23 +43,22 @@ static const double toMM = 1.e-12;
 
 Fun4AllHepMCInputManager::Fun4AllHepMCInputManager(const string &name, const string &nodename, const string &topnodename)
   : Fun4AllInputManager(name, nodename, topnodename)
-  , isopen(0)
   , events_total(0)
   , events_thisfile(0)
   , readoscar(0)
   , topNodeName(topnodename)
-  , ascii_in(NULL)
-  , evt(NULL)
-  , save_evt(NULL)
-  , filestream(NULL)
-  , unzipstream(NULL)
+  , ascii_in(nullptr)
+  , evt(nullptr)
+  , save_evt(nullptr)
+  , filestream(nullptr)
+  , unzipstream(nullptr)
 {
-  set_embedding_id(0); // default embedding ID. Welcome to change via macro
+  set_embedding_id(0);  // default embedding ID. Welcome to change via macro
 
   Fun4AllServer *se = Fun4AllServer::instance();
   topNode = se->topNode(topNodeName.c_str());
   PHNodeIterator iter(topNode);
-  PHCompositeNode *dstNode = se->getNode(InputNode.c_str(), topNodeName.c_str());
+  PHCompositeNode *dstNode = se->getNode(InputNode(), topNodeName);
 
   PHHepMCGenEventMap *geneventmap = findNode::getClass<PHHepMCGenEventMap>(topNode, "PHHepMCGenEventMap");
   if (!geneventmap)
@@ -84,12 +84,12 @@ Fun4AllHepMCInputManager::~Fun4AllHepMCInputManager()
 
 int Fun4AllHepMCInputManager::fileopen(const string &filenam)
 {
-  if (!mySyncManager)
+  if (!MySyncManager())
   {
     cout << "Call fileopen only after you registered your Input Manager " << Name() << " with the Fun4AllServer" << endl;
     exit(1);
   }
-  if (isopen)
+  if (IsOpen())
   {
     cout << "Closing currently open file "
          << filename
@@ -99,9 +99,9 @@ int Fun4AllHepMCInputManager::fileopen(const string &filenam)
   filename = filenam;
   FROG frog;
   string fname(frog.location(filename.c_str()));
-  if (verbosity > 0)
+  if (Verbosity() > 0)
   {
-    cout << ThisName << ": opening file " << fname << endl;
+    cout << Name() << ": opening file " << fname << endl;
   }
 
   if (readoscar)
@@ -142,14 +142,14 @@ int Fun4AllHepMCInputManager::fileopen(const string &filenam)
   static bool run_number_forced = rc->FlagExist("RUNNUMBER");
   if (run_number_forced)
   {
-    mySyncManager->CurrentRun(rc->get_IntFlag("RUNNUMBER"));
+    MySyncManager()->CurrentRun(rc->get_IntFlag("RUNNUMBER"));
   }
   else
   {
-    mySyncManager->CurrentRun(-1);
+    MySyncManager()->CurrentRun(-1);
   }
   events_thisfile = 0;
-  isopen = 1;
+  IsOpen(1);
   AddToFileOpened(fname);  // add file to the list of files which were opened
   return 0;
 }
@@ -159,12 +159,12 @@ int Fun4AllHepMCInputManager::run(const int nevents)
   // attempt to retrieve a valid event from inputs
   while (true)
   {
-    if (!isopen)
+    if (!IsOpen())
     {
-      if (!filelist.size())
+      if (FileListEmpty())
 
       {
-        if (verbosity > 0)
+        if (Verbosity() > 0)
         {
           cout << "Fun4AllHepMCInputManager::run::" << Name() << ": No Input file open" << endl;
         }
@@ -183,7 +183,7 @@ int Fun4AllHepMCInputManager::run(const int nevents)
     if (save_evt)  // if an event was pushed back, copy saved pointer and reset save_evt pointer
     {
       evt = save_evt;
-      save_evt = NULL;
+      save_evt = nullptr;
     }
     else
     {
@@ -199,7 +199,7 @@ int Fun4AllHepMCInputManager::run(const int nevents)
 
     if (!evt)
     {
-      if (verbosity > 1)
+      if (Verbosity() > 1)
       {
         cout << "Fun4AllHepMCInputManager::run::" << Name()
              << ": error type: " << ascii_in->error_type()
@@ -209,8 +209,8 @@ int Fun4AllHepMCInputManager::run(const int nevents)
     }
     else
     {
-      mySyncManager->CurrentEvent(evt->event_number());
-      if (verbosity > 0)
+      MySyncManager()->CurrentEvent(evt->event_number());
+      if (Verbosity() > 0)
       {
         cout << "Fun4AllHepMCInputManager::run::" << Name()
              << ": hepmc evt no: " << evt->event_number() << endl;
@@ -244,7 +244,7 @@ int Fun4AllHepMCInputManager::run(const int nevents)
 
 int Fun4AllHepMCInputManager::fileclose()
 {
-  if (!isopen)
+  if (!IsOpen())
   {
     cout << Name() << ": fileclose: No Input file open" << endl;
     return -1;
@@ -256,23 +256,12 @@ int Fun4AllHepMCInputManager::fileclose()
   else
   {
     delete ascii_in;
-    ascii_in = NULL;
+    ascii_in = nullptr;
   }
-  isopen = 0;
+  IsOpen(0);
   // if we have a file list, move next entry to top of the list
   // or repeat the same entry again
-  if (filelist.size() > 0)
-  {
-    if (repeat)
-    {
-      filelist.push_back(*(filelist.begin()));
-      if (repeat > 0)
-      {
-        repeat--;
-      }
-    }
-    filelist.pop_front();
-  }
+  UpdateFileList();
   return 0;
 }
 
@@ -280,28 +269,6 @@ void Fun4AllHepMCInputManager::Print(const string &what) const
 {
   Fun4AllInputManager::Print(what);
   return;
-}
-
-int Fun4AllHepMCInputManager::OpenNextFile()
-{
-  while (filelist.size() > 0)
-  {
-    list<string>::const_iterator iter = filelist.begin();
-    if (verbosity)
-    {
-      cout << PHWHERE << " opening next file: " << *iter << endl;
-    }
-    if (fileopen((*iter).c_str()))
-    {
-      cout << PHWHERE << " could not open file: " << *iter << endl;
-      filelist.pop_front();
-    }
-    else
-    {
-      return 0;
-    }
-  }
-  return -1;
 }
 
 int Fun4AllHepMCInputManager::PushBackEvents(const int i)
@@ -315,21 +282,21 @@ int Fun4AllHepMCInputManager::PushBackEvents(const int i)
   {
     if (i == 1 && evt)  // check on evt pointer makes sure it is not done from the cmd line
     {
-      if (verbosity > 3)
+      if (Verbosity() > 3)
       {
-        cout << ThisName << ": pushing back evt no " << evt->event_number() << endl;
+        cout << Name() << ": pushing back evt no " << evt->event_number() << endl;
       }
       save_evt = evt;
       return 0;
     }
-    cout << PHWHERE << ThisName
+    cout << PHWHERE << Name()
          << " Fun4AllHepMCInputManager cannot pop back events into file"
          << endl;
     return -1;
   }
-  if (!isopen)
+  if (!IsOpen())
   {
-    cout << PHWHERE << ThisName
+    cout << PHWHERE << Name()
          << " no file opened yet" << endl;
     return -1;
   }
@@ -351,7 +318,7 @@ int Fun4AllHepMCInputManager::PushBackEvents(const int i)
     }
     else
     {
-      if (verbosity > 3)
+      if (Verbosity() > 3)
       {
         cout << "Skipping evt no: " << evt->event_number() << endl;
       }
@@ -366,7 +333,7 @@ HepMC::GenEvent *
 Fun4AllHepMCInputManager::ConvertFromOscar()
 {
   delete evt;
-  evt = NULL;
+  evt = nullptr;
   if (theOscarFile.eof())  // if the file is exhausted bail out during this next read
   {
     return evt;
@@ -375,7 +342,7 @@ Fun4AllHepMCInputManager::ConvertFromOscar()
   //use PHENIX unit
   evt = new HepMC::GenEvent(HepMC::Units::GEV, HepMC::Units::CM);
 
-  if (verbosity > 1) cout << "Reading Oscar Event " << events_total << endl;
+  if (Verbosity() > 1) cout << "Reading Oscar Event " << events_total << endl;
   //Grab New Event From Oscar
   string theLine;
   vector<vector<double> > theEventVec;
@@ -430,7 +397,7 @@ Fun4AllHepMCInputManager::ConvertFromOscar()
     p->suggest_barcode(i + 1);
     v->add_particle_out(p);
   }
-  if (verbosity > 3)
+  if (Verbosity() > 3)
   {
     evt->print();
   }

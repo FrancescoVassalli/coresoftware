@@ -2,28 +2,24 @@
 
 
 #include "PHG4SpacalPrototypeDetector.h"
-#include "PHG4FullProjSpacalDetector.h"
-#include "PHG4CylinderGeom.h"
-#include "PHG4CylinderGeomContainer.h"
 #include "PHG4SpacalPrototypeSteppingAction.h"
 
 #include <phparameter/PHParameters.h>
-#include <phparameter/PHParametersContainer.h>
 
-#include <g4main/PHG4Utils.h>
-#include <g4main/PHG4PhenixDetector.h>
 #include <g4main/PHG4HitContainer.h>
+#include <g4main/PHG4SteppingAction.h>          // for PHG4SteppingAction
 
-#include <fun4all/Fun4AllReturnCodes.h>
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>                 // for PHIODataNode
+#include <phool/PHNode.h>                       // for PHNode
+#include <phool/PHNodeIterator.h>               // for PHNodeIterator
+#include <phool/PHObject.h>                     // for PHObject
 #include <phool/getClass.h>
 
-#include <pdbcalbase/PdbParameterMap.h>
-#include <pdbcalbase/PdbParameterMapContainer.h>
-
-#include <Geant4/globals.hh>
-
+#include <iostream>                             // for operator<<, basic_ost...
 #include <sstream>
-#include <cassert>
+
+class PHG4Detector;
 
 using namespace std;
 
@@ -43,7 +39,7 @@ PHG4SpacalPrototypeSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
   PHNodeIterator iter( topNode );
   PHCompositeNode *dstNode = dynamic_cast<PHCompositeNode*>(iter.findFirst("PHCompositeNode", "DST" ));
 
-  if (verbosity > 0)
+  if (Verbosity() > 0)
     cout
         << "PHG4SpacalPrototypeSubsystem::InitRun - use PHG4SpacalPrototypeDetector"
         << endl;
@@ -66,13 +62,13 @@ PHG4SpacalPrototypeSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
           nodename << "G4HIT_" << Name();
         }
       PHG4HitContainer* cylinder_hits = findNode::getClass<PHG4HitContainer>(
-          topNode, nodename.str().c_str());
+          topNode, nodename.str());
       if (!cylinder_hits)
         {
           dstNode->addNode(
               new PHIODataNode<PHObject>(
                   cylinder_hits = new PHG4HitContainer(nodename.str()),
-                  nodename.str().c_str(), "PHObject"));
+                  nodename.str(), "PHObject"));
         }
       cylinder_hits->AddLayer(0);
       if (GetParams()->get_int_param("absorberactive"))
@@ -87,14 +83,11 @@ PHG4SpacalPrototypeSubsystem::InitRunSubsystem(PHCompositeNode* topNode)
               nodename << "G4HIT_ABSORBER_" << Name();
             }
           PHG4HitContainer* cylinder_hits =
-              findNode::getClass<PHG4HitContainer>(topNode,
-                  nodename.str().c_str());
+              findNode::getClass<PHG4HitContainer>(topNode,nodename.str());
           if (!cylinder_hits)
             {
-              dstNode->addNode(
-                  new PHIODataNode<PHObject>(cylinder_hits =
-                      new PHG4HitContainer(nodename.str()),
-                      nodename.str().c_str(), "PHObject"));
+	      cylinder_hits =  new PHG4HitContainer(nodename.str());
+              dstNode->addNode(new PHIODataNode<PHObject>(cylinder_hits, nodename.str(), "PHObject"));
             }
           cylinder_hits->AddLayer(0);
         }

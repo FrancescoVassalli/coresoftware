@@ -1,23 +1,50 @@
 AUTOMAKE_OPTIONS = foreign
 
-lib_LTLIBRARIES = libphool.la
+lib_LTLIBRARIES = \
+  libphool.la \
+  libphool_raw.la
 
-BUILT_SOURCES = \
-  testexternals.cc
 
 AM_CPPFLAGS = \
   -I$(includedir) \
   -I$(OFFLINE_MAIN)/include \
   -I`root-config --incdir`
 
+AM_LDFLAGS = \
+  -L$(libdir) \
+  -L$(OFFLINE_MAIN)/lib
+
 libphool_la_LDFLAGS = \
   -L$(libdir) \
   -L$(OFFLINE_MAIN)/lib \
-  `root-config --libs` \
+  `root-config --libs`
+
+libphool_raw_la_LIBADD = \
+  libphool.la \
   -lEvent
 
+ROOTDICTS = \
+  PHObject_Dict.cc \
+  PHTimeStamp_Dict.cc
+
+if MAKEROOT6
+pcmdir = $(libdir)
+nobase_dist_pcm_DATA = \
+  PHObject_Dict_rdict.pcm \
+  PHTimeStamp_Dict_rdict.pcm
+
+else
+ROOT5DICTS = \
+  PHMessage_Dict.cc \
+  PHRandomSeed_Dict.cc \
+  PHFlag_Dict.cc \
+  PHTimeServer_Dict.cc \
+  recoConsts_Dict.cc
+endif
+
 libphool_la_SOURCES = \
-  PHBase_dict.cc \
+  $(ROOT5DICTS) \
+  $(ROOTDICTS) \
   PHCompositeNode.cc \
   PHFlag.cc \
   PHIOManager.cc \
@@ -30,11 +57,14 @@ libphool_la_SOURCES = \
   PHObject.cc \
   PHOperation.cc \
   PHRandomSeed.cc \
-  PHRawOManager.cc \
   PHTimer.cc \
   PHTimeServer.cc \
   PHTimeStamp.cc \
   recoConsts.cc
+
+libphool_raw_la_SOURCES = \
+  PHRawDataNode.cc \
+  PHRawOManager.cc
 
 pkginclude_HEADERS =  \
   getClass.h \
@@ -64,16 +94,21 @@ pkginclude_HEADERS =  \
   PHTypedNodeIterator.h \
   recoConsts.h
 
-noinst_HEADERS = \
-  PHBase_LinkDef.h
+BUILT_SOURCES = \
+  testexternals.cc
 
 noinst_PROGRAMS = \
-  testexternals
+  testexternals \
+  testexternals_raw
+
 
 testexternals_SOURCES = testexternals.cc
-
 testexternals_LDADD = \
   libphool.la
+
+testexternals_raw_SOURCES = testexternals.cc
+testexternals_raw_LDADD = \
+  libphool_raw.la
 
 testexternals.cc:
 	echo "//*** this is a generated file. Do not commit, do not edit" > $@
@@ -82,17 +117,11 @@ testexternals.cc:
 	echo "  return 0;" >> $@
 	echo "}" >> $@
 
-
-PHBase_dict.cc : \
-  PHFlag.h \
-  phool.h \
-  PHObject.h \
-  PHRandomSeed.h \
-  PHTimeServer.h \
-  PHTimeStamp.h \
-  recoConsts.h \
-  PHBase_LinkDef.h
+%_Dict.cc: %.h %LinkDef.h
 	rootcint -f $@ @CINTDEFS@ -c $(DEFAULT_INCLUDES) $(AM_CPPFLAGS) $^
 
+#just to get the dependency
+%_Dict_rdict.pcm: %_Dict.cc ;
+
 clean-local:
-	rm -f *_dict* testexternals.cc *.pcm
+	rm -f *Dict* $(BUILT_SOURCES) *.pcm

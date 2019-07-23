@@ -1,28 +1,41 @@
 #include "HepMCNodeReader.h"
 #include "PHG4InEvent.h"
+#include "PHG4Particle.h"
 #include "PHG4Particlev1.h"
-#include "PHG4Particlev2.h"
-
-#include <Geant4/G4ParticleDefinition.hh>
-#include <Geant4/G4ParticleTable.hh>
 
 #include <fun4all/Fun4AllReturnCodes.h>
 
 #include <phhepmc/PHHepMCGenEvent.h>
 #include <phhepmc/PHHepMCGenEventMap.h>
 
-#include <phool/PHRandomSeed.h>
 #include <phool/getClass.h>
+#include <phool/PHCompositeNode.h>
+#include <phool/PHDataNode.h>
+#include <phool/PHNode.h>                // for PHNode
+#include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>
+#include <phool/PHRandomSeed.h>
+#include <phool/phool.h>
 #include <phool/recoConsts.h>
 
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>
+#include <HepMC/GenVertex.h>
+#include <HepMC/IteratorRange.h>
+#include <HepMC/SimpleVector.h>
+#include <HepMC/Units.h>
 
 #include <gsl/gsl_const.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
 #include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <iterator>
 #include <list>
+#include <utility>
 
 using namespace std;
 
@@ -274,14 +287,12 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
 
         // For pile-up simulation: vertex position
         vtxindex = ineve->AddVtx(xpos, ypos, zpos, time);
-        int trackid = -1;
         for (fiter = finalstateparticles.begin();
              fiter != finalstateparticles.end();
              ++fiter)
         {
-          ++trackid;
 
-          if (verbosity > 1) (*fiter)->print();
+          if (Verbosity() > 1) (*fiter)->print();
 
           PHG4Particle *particle = new PHG4Particlev1();
           particle->set_pid((*fiter)->pdg_id());
@@ -300,7 +311,7 @@ int HepMCNodeReader::process_event(PHCompositeNode *topNode)
 
   }  // For pile-up simulation: loop end for PHHepMC event map
 
-  if (verbosity > 0) ineve->identify();
+  if (Verbosity() > 0) ineve->identify();
 
   return Fun4AllReturnCodes::EVENT_OK;
 }

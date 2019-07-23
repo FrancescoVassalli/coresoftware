@@ -2,20 +2,22 @@
 
 #include <pdbcalbase/PdbBankManager.h>
 #include <pdbcalbase/PdbApplication.h>
-#include <pdbcalbase/PdbBankList.h>
+//#include <pdbcalbase/PdbBankList.h>
 #include <pdbcalbase/PdbCalBank.h>
 #include <pdbcalbase/PdbParameterMap.h>
 #include <pdbcalbase/PdbParameterMapContainer.h>
+#include <pdbcalbase/PdbBankID.h>
 
 #include <phool/getClass.h>
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
 #include <phool/PHTimeStamp.h>
+#include <phool/phool.h>
 
 #include <TBufferXML.h>
 #include <TFile.h>
 #include <TSystem.h>
-#include <TBufferFile.h>
+//#include <TBufferFile.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
@@ -35,12 +37,15 @@
 #include <boost/lexical_cast.hpp>
 #endif
 
-#include <cassert>
 #include <algorithm>
-#include <cmath>
+#include <cassert>
+#include <cctype>
+//#include <cmath>
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <sstream>
+#include <unistd.h>
 
 using namespace std;
 
@@ -50,29 +55,36 @@ PHParameters::PHParameters(const PHParameters &params, const std::string &name)
   FillFrom(&params);
 }
 
+PHParameters::~PHParameters()
+{
+  m_DoubleParMap.clear();
+  m_IntParMap.clear();
+  m_StringParMap.clear();
+}
+
 void
 PHParameters::set_int_param(const std::string &name, const int ival)
 {
-  intparams[name] = ival;
+  m_IntParMap[name] = ival;
 }
 
 int
 PHParameters::get_int_param(const std::string &name) const
 {
-  if (intparams.find(name) != intparams.end())
+  if (m_IntParMap.find(name) != m_IntParMap.end())
     {
-      return intparams.find(name)->second;
+      return m_IntParMap.find(name)->second;
     }
   cout << PHWHERE << " integer parameter " << name
       << " does not exist (forgot to set?)" << endl;
-
+  gSystem->Exit(1);
   exit(1);
 }
 
 bool
 PHParameters::exist_int_param(const std::string &name) const
 {
-  if (intparams.find(name) != intparams.end())
+  if (m_IntParMap.find(name) != m_IntParMap.end())
     {
       return true;
     }
@@ -83,8 +95,8 @@ void
 PHParameters::printint() const
 {
   cout << "int parameters: " << endl;
-  for (map<const string, int>::const_iterator iter = intparams.begin();
-      iter != intparams.end(); ++iter)
+  for (map<const string, int>::const_iterator iter = m_IntParMap.begin();
+      iter != m_IntParMap.end(); ++iter)
     {
       cout << iter->first << ": " << iter->second << endl;
     }
@@ -94,26 +106,27 @@ PHParameters::printint() const
 void
 PHParameters::set_double_param(const std::string &name, const double dval)
 {
-  doubleparams[name] = dval;
+  m_DoubleParMap[name] = dval;
 }
 
 double
 PHParameters::get_double_param(const std::string &name) const
 {
-  if (doubleparams.find(name) != doubleparams.end())
+  if (m_DoubleParMap.find(name) != m_DoubleParMap.end())
     {
-      return doubleparams.find(name)->second;
+      return m_DoubleParMap.find(name)->second;
     }
   cout << PHWHERE << " double parameter " << name
       << " does not exist (forgot to set?)" << endl;
 
+  gSystem->Exit(1);
   exit(1);
 }
 
 bool
 PHParameters::exist_double_param(const std::string &name) const
 {
-  if (doubleparams.find(name) != doubleparams.end())
+  if (m_DoubleParMap.find(name) != m_DoubleParMap.end())
     {
       return true;
     }
@@ -122,9 +135,9 @@ PHParameters::exist_double_param(const std::string &name) const
 
 
 void
-PHParameters::Print() const
+PHParameters::Print(Option_t *option) const
 {
-  cout << "Parameters for " << detname  << endl;
+  cout << "Parameters for " << m_Detector  << endl;
   printint();
   printdouble();
   printstring();
@@ -136,8 +149,8 @@ PHParameters::get_hash() const
 {
   size_t seed = 0;
 
-  for (dMap::const_iterator iter = doubleparams.begin();
-      iter != doubleparams.end(); ++iter)
+  for (dMap::const_iterator iter = m_DoubleParMap.begin();
+      iter != m_DoubleParMap.end(); ++iter)
     {
 //      size_t seed = 0;
       boost::hash_combine(seed, iter->first );
@@ -145,8 +158,8 @@ PHParameters::get_hash() const
 //      cout << iter->first << ": " << iter->second <<" -> "<<seed<< endl;
     }
 
-  for (iMap::const_iterator iter = intparams.begin();
-      iter != intparams.end(); ++iter)
+  for (iMap::const_iterator iter = m_IntParMap.begin();
+      iter != m_IntParMap.end(); ++iter)
     {
 //      size_t seed = 0;
       boost::hash_combine(seed, iter->first );
@@ -154,8 +167,8 @@ PHParameters::get_hash() const
 //      cout << iter->first << ": " << iter->second <<" -> "<<seed<< endl;
     }
 
-  for (strMap::const_iterator iter = stringparams.begin();
-      iter != stringparams.end(); ++iter)
+  for (strMap::const_iterator iter = m_StringParMap.begin();
+      iter != m_StringParMap.end(); ++iter)
     {
 //      size_t seed = 0;
       boost::hash_combine(seed, iter->first );
@@ -172,8 +185,8 @@ void
 PHParameters::printdouble() const
 {
   cout << "double parameters: " << endl;
-  for (map<const string, double>::const_iterator iter = doubleparams.begin();
-      iter != doubleparams.end(); ++iter)
+  for (map<const string, double>::const_iterator iter = m_DoubleParMap.begin();
+      iter != m_DoubleParMap.end(); ++iter)
     {
       cout << iter->first << ": " << iter->second << endl;
     }
@@ -183,15 +196,15 @@ PHParameters::printdouble() const
 void
 PHParameters::set_string_param(const std::string &name, const string &str)
 {
-  stringparams[name] = str;
+  m_StringParMap[name] = str;
 }
 
 string
 PHParameters::get_string_param(const std::string &name) const
 {
-  if (stringparams.find(name) != stringparams.end())
+  if (m_StringParMap.find(name) != m_StringParMap.end())
     {
-      return stringparams.find(name)->second;
+      return m_StringParMap.find(name)->second;
     }
   cout << PHWHERE << " string parameter " << name
       << " does not exist (forgot to set?)" << endl;
@@ -202,7 +215,7 @@ PHParameters::get_string_param(const std::string &name) const
 bool
 PHParameters::exist_string_param(const std::string &name) const
 {
-  if (stringparams.find(name) != stringparams.end())
+  if (m_StringParMap.find(name) != m_StringParMap.end())
     {
       return true;
     }
@@ -213,8 +226,8 @@ void
 PHParameters::printstring() const
 {
   cout << "string parameters: " << endl;
-  for (map<const string, string>::const_iterator iter = stringparams.begin();
-      iter != stringparams.end(); ++iter)
+  for (map<const string, string>::const_iterator iter = m_StringParMap.begin();
+      iter != m_StringParMap.end(); ++iter)
     {
       cout << iter->first << ": " << iter->second << endl;
     }
@@ -232,7 +245,7 @@ PHParameters::FillFrom(const PdbParameterMap *saveparams)
   for (map<const std::string, double>::const_iterator iter = begin_end_d.first;
       iter != begin_end_d.second; ++iter)
     {
-      doubleparams[iter->first] = iter->second;
+      m_DoubleParMap[iter->first] = iter->second;
     }
   pair<std::map<const std::string, int>::const_iterator,
       std::map<const std::string, int>::const_iterator> begin_end_i =
@@ -240,7 +253,7 @@ PHParameters::FillFrom(const PdbParameterMap *saveparams)
   for (map<const std::string, int>::const_iterator iter = begin_end_i.first;
       iter != begin_end_i.second; ++iter)
     {
-      intparams[iter->first] = iter->second;
+      m_IntParMap[iter->first] = iter->second;
     }
   pair<std::map<const std::string, string>::const_iterator,
       std::map<const std::string, string>::const_iterator> begin_end_s =
@@ -248,7 +261,7 @@ PHParameters::FillFrom(const PdbParameterMap *saveparams)
   for (map<const std::string, string>::const_iterator iter = begin_end_s.first;
       iter != begin_end_s.second; ++iter)
     {
-      stringparams[iter->first] = iter->second;
+      m_StringParMap[iter->first] = iter->second;
     }
 
   return;
@@ -270,7 +283,7 @@ PHParameters::FillFrom(const PdbParameterMapContainer *saveparamcontainer, const
   for (map<const std::string, double>::const_iterator iter = begin_end_d.first;
       iter != begin_end_d.second; ++iter)
     {
-      doubleparams[iter->first] = iter->second;
+      m_DoubleParMap[iter->first] = iter->second;
     }
   pair<std::map<const std::string, int>::const_iterator,
       std::map<const std::string, int>::const_iterator> begin_end_i =
@@ -278,7 +291,7 @@ PHParameters::FillFrom(const PdbParameterMapContainer *saveparamcontainer, const
   for (map<const std::string, int>::const_iterator iter = begin_end_i.first;
       iter != begin_end_i.second; ++iter)
     {
-      intparams[iter->first] = iter->second;
+      m_IntParMap[iter->first] = iter->second;
     }
   pair<std::map<const std::string, string>::const_iterator,
       std::map<const std::string, string>::const_iterator> begin_end_s =
@@ -286,7 +299,7 @@ PHParameters::FillFrom(const PdbParameterMapContainer *saveparamcontainer, const
   for (map<const std::string, string>::const_iterator iter = begin_end_s.first;
       iter != begin_end_s.second; ++iter)
     {
-      stringparams[iter->first] = iter->second;
+      m_StringParMap[iter->first] = iter->second;
     }
 
   return;
@@ -297,17 +310,17 @@ PHParameters::FillFrom(const PHParameters *saveparams)
 {
   assert(saveparams);
 
-  for (dMap::const_iterator iter = saveparams->doubleparams.begin();
-      iter != saveparams->doubleparams.end(); ++iter)
-    doubleparams[iter->first] = iter->second;
+  for (dMap::const_iterator iter = saveparams->m_DoubleParMap.begin();
+      iter != saveparams->m_DoubleParMap.end(); ++iter)
+    m_DoubleParMap[iter->first] = iter->second;
 
-  for (iMap::const_iterator iter = saveparams->intparams.begin();
-      iter != saveparams->intparams.end(); ++iter)
-    intparams[iter->first] = iter->second;
+  for (iMap::const_iterator iter = saveparams->m_IntParMap.begin();
+      iter != saveparams->m_IntParMap.end(); ++iter)
+    m_IntParMap[iter->first] = iter->second;
 
-  for (strMap::const_iterator iter = saveparams->stringparams.begin();
-      iter != saveparams->stringparams.end(); ++iter)
-    stringparams[iter->first] = iter->second;
+  for (strMap::const_iterator iter = saveparams->m_StringParMap.begin();
+      iter != saveparams->m_StringParMap.end(); ++iter)
+    m_StringParMap[iter->first] = iter->second;
 
   return;
 }
@@ -368,6 +381,7 @@ PHParameters::WriteToDB()
     {
       cout << PHWHERE << " Aborting, Database not writable" << endl;
       application->abort();
+      gSystem->Exit(1);
       exit(1);
     }
 
@@ -376,7 +390,7 @@ PHParameters::WriteToDB()
   PHTimeStamp TStart(0);
   PHTimeStamp TStop(0xffffffff);
 
-  string tablename = detname + "_geoparams";
+  string tablename = m_Detector + "_geoparams";
   std::transform(tablename.begin(), tablename.end(), tablename.begin(),
       ::tolower);
   PdbCalBank *NewBank = bankManager->createBank("PdbParameterMapBank", bankID,
@@ -406,6 +420,7 @@ PHParameters::ReadFromDB(const string &name, const int layer)
     {
       cout << PHWHERE << " Aborting, Database not readable" << endl;
       application->abort();
+      gSystem->Exit(1);
       exit(1);
     }
 
@@ -441,6 +456,7 @@ PHParameters::ReadFromDB()
     {
       cout << PHWHERE << " Aborting, Database not readable" << endl;
       application->abort();
+      gSystem->Exit(1);
       exit(1);
     }
 
@@ -448,7 +464,7 @@ PHParameters::ReadFromDB()
   PdbBankID bankID(0); // lets start at zero
   PHTimeStamp TSearch(10);
 
-  string tablename = detname + "_geoparams";
+  string tablename = m_Detector + "_geoparams";
   std::transform(tablename.begin(), tablename.end(), tablename.begin(),
       ::tolower);
   PdbCalBank *NewBank = bankManager->fetchBank("PdbParameterMapBank", bankID,
@@ -481,7 +497,7 @@ PHParameters::WriteToFile(const string &extension, const string &dir)
     {
       fullpath << "/";
     }
-  fnamestream << detname << "_geoparams" << "-" << bankID.getInternalValue()
+  fnamestream << m_Detector << "_geoparams" << "-" << bankID.getInternalValue()
       << "-" << TStart.getTics() << "-" << TStop.getTics() << "-" << time(0)
       << "." << extension;
   string fname = fnamestream.str();
@@ -602,18 +618,18 @@ PHParameters::ReadFromFile(const string &name, const string &extension, const in
 void
 PHParameters::CopyToPdbParameterMap(PdbParameterMap *myparm)
 {
-  for (map<const string, double>::const_iterator iter = doubleparams.begin();
-      iter != doubleparams.end(); ++iter)
+  for (map<const string, double>::const_iterator iter = m_DoubleParMap.begin();
+      iter != m_DoubleParMap.end(); ++iter)
     {
       myparm->set_double_param(iter->first, iter->second);
     }
-  for (map<const string, int>::const_iterator iter = intparams.begin();
-      iter != intparams.end(); ++iter)
+  for (map<const string, int>::const_iterator iter = m_IntParMap.begin();
+      iter != m_IntParMap.end(); ++iter)
     {
       myparm->set_int_param(iter->first, iter->second);
     }
-  for (map<const string, string>::const_iterator iter = stringparams.begin();
-      iter != stringparams.end(); ++iter)
+  for (map<const string, string>::const_iterator iter = m_StringParMap.begin();
+      iter != m_StringParMap.end(); ++iter)
     {
       myparm->set_string_param(iter->first, iter->second);
     }
@@ -630,6 +646,7 @@ PHParameters::ConvertStringToUint(const std::string &str) const
   catch (boost::bad_lexical_cast const&)
     {
       cout << "Cannot extract timestamp from " << str << endl;
+      gSystem->Exit(1);
       exit(1);
     }
   return tics;

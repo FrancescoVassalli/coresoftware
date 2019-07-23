@@ -1,11 +1,17 @@
 #include "PHG4EnvelopeSubsystem.h"
+
 #include "PHG4EnvelopeDetector.h"
 #include "PHG4EnvelopeSteppingAction.h"
 
 #include <g4main/PHG4HitContainer.h>
-#include <phool/getClass.h>
+#include <g4main/PHG4Subsystem.h>        // for PHG4Subsystem
 
-#include <Geant4/globals.hh>
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>          // for PHIODataNode
+#include <phool/PHNode.h>                // for PHNode
+#include <phool/PHNodeIterator.h>        // for PHNodeIterator
+#include <phool/PHObject.h>              // for PHObject
+#include <phool/getClass.h>
 
 #include <sstream>
 
@@ -14,8 +20,7 @@ using namespace std;
 PHG4EnvelopeSubsystem::PHG4EnvelopeSubsystem( const std::string &name, const int lyr ):
 	PHG4Subsystem( name ),
 	detector_( 0 ),
-	steppingAction_( NULL ),
-	eventAction_(NULL),
+	steppingAction_( nullptr ),
 	material("G4_PbWO4"),  // default - lead tungstate crystal
 	active(1),
 	detector_type(name)
@@ -31,7 +36,7 @@ int PHG4EnvelopeSubsystem::Init( PHCompositeNode* topNode )
 	// create detector
 	detector_ = new PHG4EnvelopeDetector(topNode, Name());
 	detector_->SetActive(active);
-	detector_->OverlapCheck(overlapcheck);
+	detector_->OverlapCheck(CheckOverlap());
 	
 	if (active)
 	{

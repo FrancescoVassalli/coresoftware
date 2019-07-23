@@ -18,12 +18,20 @@
 #include <gsl/gsl_roots.h>
      
 #include <HepMC/GenEvent.h>
+#include <HepMC/GenParticle.h>             // for GenParticle
 #include <HepMC/GenRanges.h>
+#include <HepMC/GenVertex.h>               // for GenVertex, GenVertex::part...
+#include <HepMC/HeavyIon.h>                // for HeavyIon
+#include <HepMC/IteratorRange.h>           // for children, descendants
+#include <HepMC/SimpleVector.h>            // for FourVector
+
 #include <CLHEP/Random/RandFlat.h>
 #include <CLHEP/Vector/LorentzVector.h>
 
-#include <set>
 #include <cmath>
+#include <map>                             // for map
+
+namespace CLHEP { class HepRandomEngine; }
 
 flowAfterburnerAlgorithm algorithm;
 std::map<std::string, flowAfterburnerAlgorithm> algorithms;
@@ -313,10 +321,10 @@ flowAfterburner(HepMC::GenEvent *event,
       HepMC::GenParticle *parent = (*it);
 
       // Skip the "jets" found during the Hijing run itself
-      if (parent->status() == 103)
-	{
-	  continue;
-	}
+      // if (parent->status() == 103)
+      // 	{
+      // 	  continue;
+      // 	}
       CLHEP::HepLorentzVector momentum (parent->momentum().px(),
 					parent->momentum().py(),
 					parent->momentum().pz(),

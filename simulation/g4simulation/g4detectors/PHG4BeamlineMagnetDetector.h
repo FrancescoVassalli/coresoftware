@@ -1,5 +1,7 @@
-#ifndef PHG4BeamlineMagnetDetector_h
-#define PHG4BeamlineMagnetDetector_h
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4DETECTORS_PHG4BEAMLINEMAGNETDETECTOR_H
+#define G4DETECTORS_PHG4BEAMLINEMAGNETDETECTOR_H
 
 #include <g4main/PHG4Detector.h>
 
@@ -7,6 +9,7 @@
 
 class G4LogicalVolume;
 class G4VPhysicalVolume;
+class PHCompositeNode;
 class PHParameters;
 
 class PHG4BeamlineMagnetDetector: public PHG4Detector

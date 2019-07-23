@@ -1,9 +1,12 @@
-#ifndef PHG4SimpleEventGenerator_H__
-#define PHG4SimpleEventGenerator_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4MAIN_PHG4SIMPLEEVENTGENERATOR_H
+#define G4MAIN_PHG4SIMPLEEVENTGENERATOR_H
 
 #include "PHG4ParticleGeneratorBase.h"
 
-#include <map>
+#include <string>                       // for string
+#include <utility>                      // for pair
 #include <vector>
 
 class PHG4InEvent;

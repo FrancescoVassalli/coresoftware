@@ -1,5 +1,7 @@
-#ifndef HEPMCNODEREADER_H__
-#define HEPMCNODEREADER_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4MAIN_HEPMCNODEREADER_H
+#define G4MAIN_HEPMCNODEREADER_H
 
 #include <fun4all/SubsysReco.h>
 
@@ -10,7 +12,6 @@
 
 #include <string>
 
-class PHHepMCGenEvent;
 class PHCompositeNode;
 
 //! HepMCNodeReader take input from all subevents from PHHepMCGenEventMap and send them to simulation in Geant4

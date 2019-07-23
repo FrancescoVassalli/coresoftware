@@ -1,9 +1,7 @@
 #include "Fun4AllDstInputManager.h"
 
-#include "Fun4AllHistoBinDefs.h"
 #include "Fun4AllReturnCodes.h"
 #include "Fun4AllServer.h"
-#include "Fun4AllSyncManager.h"
 
 #include <ffaobjects/RunHeader.h>
 #include <ffaobjects/SyncDefs.h>
@@ -12,23 +10,25 @@
 #include <frog/FROG.h>
 
 #include <phool/PHCompositeNode.h>
-#include <phool/PHIODataNode.h>
 #include <phool/PHNodeIOManager.h>
 #include <phool/PHNodeIntegrate.h>
+#include <phool/PHNodeIterator.h>   // for PHNodeIterator
 #include <phool/getClass.h>
-#include <phool/recoConsts.h>
+#include <phool/phool.h>            // for PHWHERE, PHReadOnly, PHRunTree
 
 #include <TSystem.h>
 
 #include <cstdlib>
-#include <memory>
+#include <iostream>                 // for operator<<, basic_ostream, endl
+#include <utility>                  // for pair
+
+class TBranch;
 
 using namespace std;
 
 Fun4AllDstInputManager::Fun4AllDstInputManager(const string &name, const string &nodename, const string &topnodename)
   : Fun4AllInputManager(name, nodename, topnodename)
-  , readrunttree(1)
-  , isopen(0)
+  , m_ReadRunTTree(1)
   , events_total(0)
   , events_thisfile(0)
   , events_skipped_during_sync(0)
@@ -53,19 +53,19 @@ Fun4AllDstInputManager::~Fun4AllDstInputManager()
 int Fun4AllDstInputManager::fileopen(const string &filenam)
 {
   Fun4AllServer *se = Fun4AllServer::instance();
-  if (isopen)
+  if (IsOpen())
   {
     cout << "Closing currently open file "
-         << filename
+         << FileName()
          << " and opening " << filenam << endl;
     fileclose();
   }
-  filename = filenam; // filenam is const and .c_str() breaks this
+  FileName(filenam);
   FROG frog;
-  fullfilename = frog.location(filename.c_str());
-  if (verbosity > 0)
+  fullfilename = frog.location(FileName());
+  if (Verbosity() > 0)
   {
-    cout << ThisName << ": opening file " << fullfilename << endl;
+    cout << Name() << ": opening file " << fullfilename << endl;
   }
   // sanity check - the IManager must be nullptr when this method is executed
   // if not something is very very wrong and we must not continue
@@ -83,12 +83,12 @@ int Fun4AllDstInputManager::fileopen(const string &filenam)
     exit(1);
   }
   // first read the runnode if not disabled
-  if (readrunttree)
+  if (m_ReadRunTTree)
   {
     IManager = new PHNodeIOManager(fullfilename, PHReadOnly, PHRunTree);
     if (IManager->isFunctional())
     {
-      runNode = se->getNode(RunNode.c_str(), topNodeName.c_str());
+      runNode = se->getNode(RunNode, TopNodeName());
       IManager->read(runNode);
       // get the current run number
       RunHeader *runheader = findNode::getClass<RunHeader>(runNode, "RunHeader");
@@ -131,20 +131,20 @@ int Fun4AllDstInputManager::fileopen(const string &filenam)
     delete IManager;
   }
   // now open the dst node
-  dstNode = se->getNode(InputNode.c_str(), topNodeName.c_str());
+  dstNode = se->getNode(InputNode(), TopNodeName());
   IManager = new PHNodeIOManager(fullfilename, PHReadOnly);
   if (IManager->isFunctional())
   {
-    isopen = 1;
+    IsOpen(1);
     events_thisfile = 0;
-    setBranches();              // set branch selections
-    AddToFileOpened(filename);  // add file to the list of files which were opened
+    setBranches();                // set branch selections
+    AddToFileOpened(FileName());  // add file to the list of files which were opened
     return 0;
   }
   else
   {
-    cout << PHWHERE << ": " << ThisName << " Could not open file "
-         << filename << endl;
+    cout << PHWHERE << ": " << Name() << " Could not open file "
+         << FileName() << endl;
     delete IManager;
     IManager = nullptr;
     return -1;
@@ -153,12 +153,11 @@ int Fun4AllDstInputManager::fileopen(const string &filenam)
 
 int Fun4AllDstInputManager::run(const int nevents)
 {
-  if (!isopen)
+  if (!IsOpen())
   {
-    if (filelist.empty())
-
+    if (FileListEmpty())
     {
-      if (verbosity > 0)
+      if (Verbosity() > 0)
       {
         cout << Name() << ": No Input file open" << endl;
       }
@@ -173,7 +172,7 @@ int Fun4AllDstInputManager::run(const int nevents)
       }
     }
   }
-  if (verbosity > 3)
+  if (Verbosity() > 3)
   {
     cout << "Getting Event from " << Name() << endl;
   }
@@ -212,27 +211,15 @@ readagain:
 
 int Fun4AllDstInputManager::fileclose()
 {
-  if (!isopen)
+  if (!IsOpen())
   {
     cout << Name() << ": fileclose: No Input file open" << endl;
     return -1;
   }
   delete IManager;
-  IManager = 0;
-  isopen = 0;
-  if (!filelist.empty())
-  {
-    if (repeat)
-    {
-      filelist.push_back(*(filelist.begin()));
-      if (repeat > 0)
-      {
-        repeat--;
-      }
-    }
-    filelist.pop_front();
-  }
-
+  IManager = nullptr;
+  IsOpen(0);
+  UpdateFileList();
   return 0;
 }
 
@@ -275,7 +262,7 @@ int Fun4AllDstInputManager::SyncIt(const SyncObject *mastersync)
     }
     else  // okay try to resync here
     {
-      if (verbosity > 3)
+      if (Verbosity() > 3)
       {
         cout << "Need to Resync, mastersync evt no: " << mastersync->EventNumber()
              << ", this Event no: " << syncobject->EventNumber() << endl;
@@ -288,9 +275,9 @@ int Fun4AllDstInputManager::SyncIt(const SyncObject *mastersync)
 
       {
         events_skipped_during_sync++;
-        if (verbosity > 2)
+        if (Verbosity() > 2)
         {
-          cout << ThisName << " Run Number: " << syncobject->RunNumber()
+          cout << Name() << " Run Number: " << syncobject->RunNumber()
                << ", master: " << mastersync->RunNumber()
                << endl;
         }
@@ -309,9 +296,9 @@ int Fun4AllDstInputManager::SyncIt(const SyncObject *mastersync)
       while (syncobject->SegmentNumber() < mastersync->SegmentNumber() && igood)
       {
         events_skipped_during_sync++;
-        if (verbosity > 2)
+        if (Verbosity() > 2)
         {
-          cout << ThisName << " Segment Number: " << syncobject->SegmentNumber()
+          cout << Name() << " Segment Number: " << syncobject->SegmentNumber()
                << ", master: " << mastersync->SegmentNumber()
                << endl;
         }
@@ -333,9 +320,9 @@ int Fun4AllDstInputManager::SyncIt(const SyncObject *mastersync)
       while (syncobject->EventCounter() < mastersync->EventCounter() && igood)
       {
         events_skipped_during_sync++;
-        if (verbosity > 2)
+        if (Verbosity() > 2)
         {
-          cout << ThisName
+          cout << Name()
                << ", EventCounter: " << syncobject->EventCounter()
                << ", master: " << mastersync->EventCounter()
                << endl;
@@ -386,7 +373,7 @@ int Fun4AllDstInputManager::SyncIt(const SyncObject *mastersync)
         syncobject->identify();
         return Fun4AllReturnCodes::SYNC_FAIL;
       }
-      else if (verbosity > 3)
+      else if (Verbosity() > 3)
       {
         cout << PHWHERE << " Resynchronization successfull for " << Name() << endl;
         cout << "MasterSync->identify:" << endl;
@@ -417,9 +404,9 @@ readnextsync:
     map<string, TBranch *>::const_iterator bIter;
     for (bIter = IManager->GetBranchMap()->begin(); bIter != IManager->GetBranchMap()->end(); ++bIter)
     {
-      if (verbosity > 2)
+      if (Verbosity() > 2)
       {
-        cout << ThisName << ": branch: " << bIter->first << endl;
+        cout << Name() << ": branch: " << bIter->first << endl;
       }
       string::size_type pos = bIter->first.find("/Sync");
       if (pos != string::npos)  // found it
@@ -453,9 +440,9 @@ readnextsync:
     }
     else
     {
-      if (verbosity > 2)
+      if (Verbosity() > 2)
       {
-        cout << ThisName << ": File exhausted while resyncing" << endl;
+        cout << Name() << ": File exhausted while resyncing" << endl;
       }
       return Fun4AllReturnCodes::SYNC_FAIL;
     }
@@ -473,9 +460,9 @@ readnextsync:
   }
   if (!itest)
   {
-    if (verbosity > 2)
+    if (Verbosity() > 2)
     {
-      cout << ThisName << ": File exhausted while resyncing" << endl;
+      cout << Name() << ": File exhausted while resyncing" << endl;
     }
     fileclose();
     if (OpenNextFile())
@@ -517,7 +504,7 @@ int Fun4AllDstInputManager::BranchSelect(const string &branch, const int iflag)
 
   if (myflag > 0)
   {
-    if (verbosity > 1)
+    if (Verbosity() > 1)
     {
       cout << "Setting Root Tree Branch: " << branch << " to read" << endl;
     }
@@ -525,7 +512,7 @@ int Fun4AllDstInputManager::BranchSelect(const string &branch, const int iflag)
   }
   else
   {
-    if (verbosity > 1)
+    if (Verbosity() > 1)
     {
       cout << "Setting Root Tree Branch: " << branch << " to NOT read" << endl;
     }
@@ -544,7 +531,7 @@ int Fun4AllDstInputManager::setBranches()
       for (branchiter = branchread.begin(); branchiter != branchread.end(); ++branchiter)
       {
         IManager->selectObjectToRead(branchiter->first.c_str(), branchiter->second);
-        if (verbosity > 0)
+        if (Verbosity() > 0)
         {
           cout << branchiter->first << " set to " << branchiter->second << endl;
         }
@@ -609,28 +596,6 @@ void Fun4AllDstInputManager::Print(const string &what) const
   return;
 }
 
-int Fun4AllDstInputManager::OpenNextFile()
-{
-  while (!filelist.empty())
-  {
-    list<string>::const_iterator iter = filelist.begin();
-    if (verbosity)
-    {
-      cout << PHWHERE << " opening next file: " << *iter << endl;
-    }
-    if (fileopen(*iter))
-    {
-      cout << PHWHERE << " could not open file: " << *iter << endl;
-      filelist.pop_front();
-    }
-    else
-    {
-      return 0;
-    }
-  }
-  return -1;
-}
-
 int Fun4AllDstInputManager::PushBackEvents(const int i)
 {
   if (IManager)
@@ -640,7 +605,7 @@ int Fun4AllDstInputManager::PushBackEvents(const int i)
     IManager->setEventNumber(EventOnDst);
     return 0;
   }
-  cout << PHWHERE << ThisName << ": could not push back events, Imanager is NULL"
+  cout << PHWHERE << Name() << ": could not push back events, Imanager is NULL"
        << " probably the dst is not open yet (you need to call fileopen or run 1 event for lists)" << endl;
   return -1;
 }

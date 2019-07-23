@@ -6,23 +6,31 @@
 #include <phparameter/PHParameters.h>
 
 #include <g4main/PHG4HitContainer.h>
+#include <g4main/PHG4SteppingAction.h>              // for PHG4SteppingAction
 
+#include <phool/PHCompositeNode.h>
+#include <phool/PHIODataNode.h>                     // for PHIODataNode
+#include <phool/PHNode.h>                           // for PHNode
+#include <phool/PHNodeIterator.h>                   // for PHNodeIterator
+#include <phool/PHObject.h>                         // for PHObject
 #include <phool/getClass.h>
-
-#include <Geant4/globals.hh>
 
 #include <boost/foreach.hpp>
 
+#include <cmath>                                   // for NAN
+#include <iostream>                                 // for operator<<, basic...
 #include <set>
 #include <sstream>
+
+class PHG4Detector;
 
 using namespace std;
 
 //_______________________________________________________________________
 PHG4Prototype2OuterHcalSubsystem::PHG4Prototype2OuterHcalSubsystem(const std::string &name, const int lyr)
   : PHG4DetectorSubsystem(name, lyr)
-  , detector_(nullptr)
-  , steppingAction_(nullptr)
+  , m_Detector(nullptr)
+  , m_SteppingAction(nullptr)
 {
   InitializeParameters();
 }
@@ -34,9 +42,9 @@ int PHG4Prototype2OuterHcalSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
   PHCompositeNode *dstNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
 
   // create detector
-  detector_ = new PHG4Prototype2OuterHcalDetector(topNode, GetParams(), Name());
-  detector_->SuperDetector(SuperDetector());
-  detector_->OverlapCheck(CheckOverlap());
+  m_Detector = new PHG4Prototype2OuterHcalDetector(topNode, GetParams(), Name());
+  m_Detector->SuperDetector(SuperDetector());
+  m_Detector->OverlapCheck(CheckOverlap());
   set<string> nodes;
   if (GetParams()->get_int_param("active"))
   {
@@ -82,14 +90,14 @@ int PHG4Prototype2OuterHcalSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
     }
 
     // create stepping action
-    steppingAction_ = new PHG4Prototype2OuterHcalSteppingAction(detector_, GetParams());
+    m_SteppingAction = new PHG4Prototype2OuterHcalSteppingAction(m_Detector, GetParams());
   }
   else
   {
     // if this is a black hole it does not have to be active
     if (GetParams()->get_int_param("blackhole"))
     {
-      steppingAction_ = new PHG4Prototype2OuterHcalSteppingAction(detector_, GetParams());
+      m_SteppingAction = new PHG4Prototype2OuterHcalSteppingAction(m_Detector, GetParams());
     }
   }
   return 0;
@@ -100,9 +108,9 @@ int PHG4Prototype2OuterHcalSubsystem::process_event(PHCompositeNode *topNode)
 {
   // pass top node to stepping action so that it gets
   // relevant nodes needed internally
-  if (steppingAction_)
+  if (m_SteppingAction)
   {
-    steppingAction_->SetInterfacePointers(topNode);
+    m_SteppingAction->SetInterfacePointers(topNode);
   }
   return 0;
 }
@@ -111,9 +119,9 @@ void PHG4Prototype2OuterHcalSubsystem::Print(const string &what) const
 {
   cout << Name() << " Parameters: " << endl;
   GetParams()->Print();
-  if (detector_)
+  if (m_Detector)
   {
-    detector_->Print(what);
+    m_Detector->Print(what);
   }
   return;
 }
@@ -121,7 +129,7 @@ void PHG4Prototype2OuterHcalSubsystem::Print(const string &what) const
 //_______________________________________________________________________
 PHG4Detector *PHG4Prototype2OuterHcalSubsystem::GetDetector(void) const
 {
-  return detector_;
+  return m_Detector;
 }
 
 void PHG4Prototype2OuterHcalSubsystem::SetDefaultParameters()

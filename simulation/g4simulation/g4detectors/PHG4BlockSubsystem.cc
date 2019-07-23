@@ -1,5 +1,7 @@
 #include "PHG4BlockSubsystem.h"
+
 #include "PHG4BlockDetector.h"
+#include "PHG4BlockDisplayAction.h"
 #include "PHG4BlockGeomContainer.h"
 #include "PHG4BlockGeomv1.h"
 #include "PHG4BlockSteppingAction.h"
@@ -7,23 +9,38 @@
 #include <phparameter/PHParameters.h>
 
 #include <g4main/PHG4HitContainer.h>
-#include <g4main/PHG4Utils.h>
+#include <g4main/PHG4DisplayAction.h>   // for PHG4DisplayAction
+#include <g4main/PHG4SteppingAction.h>  // for PHG4SteppingAction
 
+#include <phool/PHIODataNode.h>         // for PHIODataNode
+#include <phool/PHNode.h>               // for PHNode
+#include <phool/PHNodeIterator.h>       // for PHNodeIterator
+#include <phool/PHObject.h>             // for PHObject
 #include <phool/getClass.h>
+#include <phool/PHCompositeNode.h>
 
-#include <Geant4/globals.hh>
-
+#include <cmath>                       // for NAN
 #include <sstream>
+
+class PHG4BlockGeom;
+class PHG4Detector;
 
 using namespace std;
 
 //_______________________________________________________________________
 PHG4BlockSubsystem::PHG4BlockSubsystem(const std::string &name, const int lyr)
   : PHG4DetectorSubsystem(name, lyr)
-  , _detector(nullptr)
-  , _steppingAction(nullptr)
+  , m_Detector(nullptr)
+  , m_SteppingAction(nullptr)
+  , m_DisplayAction(nullptr)
 {
   InitializeParameters();
+}
+
+//_______________________________________________________________________
+PHG4BlockSubsystem::~PHG4BlockSubsystem()
+{
+  delete m_DisplayAction;
 }
 
 //_______________________________________________________________________
@@ -32,10 +49,12 @@ int PHG4BlockSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
   PHNodeIterator iter(topNode);
   PHCompositeNode *dstNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
 
+  // create display settings before detector (detector adds its volumes to it)
+  m_DisplayAction = new PHG4BlockDisplayAction(Name(), GetParams());
   // create detector
-  _detector = new PHG4BlockDetector(topNode, GetParams(), Name(), GetLayer());
-  _detector->SuperDetector(SuperDetector());
-  _detector->OverlapCheck(CheckOverlap());
+  m_Detector = new PHG4BlockDetector(this, topNode, GetParams(), Name(), GetLayer());
+  m_Detector->SuperDetector(SuperDetector());
+  m_Detector->OverlapCheck(CheckOverlap());
   if (GetParams()->get_int_param("active"))
   {
     ostringstream nodename;
@@ -52,20 +71,20 @@ int PHG4BlockSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
     }
 
     // create hit list
-    PHG4HitContainer *block_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename.str().c_str());
+    PHG4HitContainer *block_hits = findNode::getClass<PHG4HitContainer>(topNode, nodename.str());
     if (!block_hits)
     {
-      dstNode->addNode(new PHIODataNode<PHObject>(block_hits = new PHG4HitContainer(nodename.str()), nodename.str().c_str(), "PHObject"));
+      dstNode->addNode(new PHIODataNode<PHObject>(block_hits = new PHG4HitContainer(nodename.str()), nodename.str(), "PHObject"));
     }
 
     block_hits->AddLayer(GetLayer());
     PHG4BlockGeomContainer *geocont = findNode::getClass<PHG4BlockGeomContainer>(topNode,
-                                                                                 geonode.str().c_str());
+                                                                                 geonode.str());
     if (!geocont)
     {
       geocont = new PHG4BlockGeomContainer();
       PHCompositeNode *runNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "RUN"));
-      PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(geocont, geonode.str().c_str(), "PHObject");
+      PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(geocont, geonode.str(), "PHObject");
       runNode->addNode(newNode);
     }
 
@@ -79,11 +98,11 @@ int PHG4BlockSubsystem::InitRunSubsystem(PHCompositeNode *topNode)
                                               GetParams()->get_double_param("rot_z"));
     geocont->AddLayerGeom(GetLayer(), geom);
 
-    _steppingAction = new PHG4BlockSteppingAction(_detector, GetParams());
+    m_SteppingAction = new PHG4BlockSteppingAction(m_Detector, GetParams());
   }
   else if (GetParams()->get_int_param("blackhole"))
   {
-    _steppingAction = new PHG4BlockSteppingAction(_detector, GetParams());
+    m_SteppingAction = new PHG4BlockSteppingAction(m_Detector, GetParams());
   }
 
   return 0;
@@ -94,9 +113,9 @@ int PHG4BlockSubsystem::process_event(PHCompositeNode *topNode)
 {
   // pass top node to stepping action so that it gets
   // relevant nodes needed internally
-  if (_steppingAction)
+  if (m_SteppingAction)
   {
-    _steppingAction->SetInterfacePointers(topNode);
+    m_SteppingAction->SetInterfacePointers(topNode);
   }
   return 0;
 }
@@ -105,7 +124,7 @@ int PHG4BlockSubsystem::process_event(PHCompositeNode *topNode)
 PHG4Detector *
 PHG4BlockSubsystem::GetDetector(void) const
 {
-  return _detector;
+  return m_Detector;
 }
 
 void PHG4BlockSubsystem::SetDefaultParameters()

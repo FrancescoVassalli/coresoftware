@@ -1,10 +1,17 @@
-#ifndef PHG4Hit_H__
-#define PHG4Hit_H__
+// Tell emacs that this is a C++ source
+//  -*- C++ -*-.
+#ifndef G4MAIN_PHG4HIT_H
+#define G4MAIN_PHG4HIT_H
 
 #include "PHG4HitDefs.h"
+
 #include <phool/PHObject.h>
+
 #include <cmath>
 #include <climits>
+#include <iostream> 
+#include <string>
+#include <utility>
 
 class PHG4Hit: public PHObject
 {

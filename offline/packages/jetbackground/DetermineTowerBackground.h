@@ -1,5 +1,5 @@
-#ifndef __DETERMINETOWERBACKGROUND_H__
-#define __DETERMINETOWERBACKGROUND_H__
+#ifndef JETBACKGROUND_DETERMINETOWERBACKGROUND_H
+#define JETBACKGROUND_DETERMINETOWERBACKGROUND_H
 
 //===========================================================
 /// \file DetermineTowerBackground.h
@@ -7,12 +7,10 @@
 /// \author Dennis V. Perepelitsa
 //===========================================================
 
-// PHENIX includes
-#include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/SubsysReco.h>
-#include <phool/PHTimeServer.h>
 
-// standard includes
+// system includes
+#include <string>
 #include <vector>
 
 // forward declarations
@@ -30,29 +28,29 @@ class DetermineTowerBackground : public SubsysReco
 {
  public:
   DetermineTowerBackground(const std::string &name = "DetermineTowerBackground");
-  virtual ~DetermineTowerBackground();
+  virtual ~DetermineTowerBackground() {}
 
-  int Init(PHCompositeNode *topNode);
   int InitRun(PHCompositeNode *topNode);
   int process_event(PHCompositeNode *topNode);
-  int End(PHCompositeNode *topNode);
 
-  void SetBackgroundOutputName( std::string name );
-  void SetSeedType( int seed_type );
-  void SetFlow( bool do_flow ) { _do_flow = do_flow; };
-  
-  void SetSeedJetD( float D ) { _seed_jet_D = D; };
-  void SetSeedJetPt( float pt ) { _seed_jet_pt = pt; };
+  void SetBackgroundOutputName(const std::string &name) { _backgroundName = name; }
+  void SetSeedType(int seed_type) { _seed_type = seed_type; }
+  void SetFlow(int do_flow) { _do_flow = do_flow; };
+
+  void SetSeedJetD(float D) { _seed_jet_D = D; };
+  void SetSeedJetPt(float pt) { _seed_jet_pt = pt; };
 
  private:
   int CreateNode(PHCompositeNode *topNode);
   void FillNode(PHCompositeNode *topNode);
 
-  bool _do_flow;
+  int _do_flow;
   float _v2;
   float _Psi2;
-  std::vector< std::vector<float> > _UE;
-  
+  std::vector<std::vector<float> > _UE;
+  int _nStrips;
+  int _nTowers;
+
   int _HCAL_NETA;
   int _HCAL_NPHI;
 
@@ -73,7 +71,6 @@ class DetermineTowerBackground : public SubsysReco
 
   std::vector<float> _seed_eta;
   std::vector<float> _seed_phi;
-
 };
 
-#endif  // __DETERMINETOWERBACKGROUND_H__
+#endif

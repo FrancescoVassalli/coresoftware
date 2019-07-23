@@ -4,8 +4,12 @@
 
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <phool/getClass.h>
+#include <phool/phool.h>                 // for PHWHERE
 
 #include <cmath>
+#include <iostream>                      // for operator<<, endl, basic_ostream
+#include <map>                           // for multimap<>::iterator, _Rb_tr...
+#include <utility>                       // for pair
 
 using namespace std;
 
@@ -28,7 +32,7 @@ PHG4InputFilter::process_event(PHCompositeNode *topNode)
     }
   pair<multimap<int, PHG4Particle *>::iterator, multimap<int, PHG4Particle *>::iterator > beginend =   ineve->GetParticles_Modify();
   multimap<int, PHG4Particle *>::iterator particleiter;
-  if (verbosity > 0)
+  if (Verbosity() > 0)
     {
       cout << "PHG4InputFilter before filter" << endl;
       ineve->identify();
@@ -86,7 +90,7 @@ PHG4InputFilter::process_event(PHCompositeNode *topNode)
         }
       ++particleiter;
     }
-  if (verbosity > 0)
+  if (Verbosity() > 0)
     {
       cout << "PHG4InputFilter: after filter" << endl;
       ineve->identify();

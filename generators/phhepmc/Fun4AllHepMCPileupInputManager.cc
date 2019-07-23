@@ -1,41 +1,25 @@
 #include "Fun4AllHepMCPileupInputManager.h"
 
+#include "PHHepMCGenEvent.h"
+#include "PHHepMCGenEventMap.h"
+#include "PHHepMCGenHelper.h"            // for PHHepMCGenHelper, PHHepMCGen...
+
+#include <fun4all/Fun4AllBase.h>         // for Fun4AllBase::VERBOSITY_SOME
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/Fun4AllServer.h>
 #include <fun4all/Fun4AllSyncManager.h>
-#include <phool/getClass.h>
-#include <phool/recoConsts.h>
 
-#include <ffaobjects/RunHeader.h>
-#include "PHHepMCGenEvent.h"
-#include "PHHepMCGenEventMap.h"
-
-#include <frog/FROG.h>
-#include <phool/PHCompositeNode.h>
-#include <phool/PHDataNode.h>
 #include <phool/PHRandomSeed.h>
 
 #include <HepMC/GenEvent.h>
 #include <HepMC/IO_GenEvent.h>
 
-#include <TPRegexp.h>
-#include <TString.h>
-
-#include <fstream>
-#include <iostream>
-#include <istream>
-#include <sstream>
-
-#include <boost/iostreams/filter/bzip2.hpp>
-#include <boost/iostreams/filter/gzip.hpp>
-#include <boost/iostreams/filtering_streambuf.hpp>
-
-#include <cstdlib>
-#include <memory>
-
-#include <gsl/gsl_const.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
+
+#include <cassert>                      // for assert
+#include <fstream>
+#include <iostream>
 
 using namespace std;
 
@@ -54,7 +38,6 @@ Fun4AllHepMCPileupInputManager::Fun4AllHepMCPileupInputManager(
   ,  // recalculated
   _first_run(true)
 {
-
   //! repeatedly read the input file
   Repeat(1);
 
@@ -94,7 +77,7 @@ int Fun4AllHepMCPileupInputManager::run(const int nevents)
       cout << " _ave_coll_per_crossing = " << _ave_coll_per_crossing;
       cout << " _min_crossing = " << _min_crossing;
       cout << " _max_crossing = " << _max_crossing;
-      cout << ". Start first event."<<endl;
+      cout << ". Start first event." << endl;
     }
   }
 
@@ -114,11 +97,11 @@ int Fun4AllHepMCPileupInputManager::run(const int nevents)
       // loop until retrieve a valid event
       while (true)
       {
-        if (!isopen)
+        if (!IsOpen())
         {
-          if (!filelist.size())
+          if (FileListEmpty())
           {
-            if (verbosity > 0)
+            if (Verbosity() > 0)
             {
               cout << Name() << ": No Input file open" << endl;
             }
@@ -138,7 +121,7 @@ int Fun4AllHepMCPileupInputManager::run(const int nevents)
         {  // if an event was pushed back, copy saved pointer and
            // reset save_evt pointer
           evt = save_evt;
-          save_evt = NULL;
+          save_evt = nullptr;
         }
         else
         {
@@ -154,7 +137,7 @@ int Fun4AllHepMCPileupInputManager::run(const int nevents)
 
         if (!evt)
         {
-          if (verbosity > 1)
+          if (Verbosity() > 1)
           {
             cout << "error type: " << ascii_in->error_type()
                  << ", rdstate: " << ascii_in->rdstate() << endl;
@@ -163,23 +146,23 @@ int Fun4AllHepMCPileupInputManager::run(const int nevents)
         }
         else
         {
-          mySyncManager->CurrentEvent(evt->event_number());
-          if (verbosity > 0)
+          MySyncManager()->CurrentEvent(evt->event_number());
+          if (Verbosity() > 0)
           {
             cout << "hepmc evt no: " << evt->event_number() << endl;
           }
-        }
-        events_total++;
-        events_thisfile++;
-        // check if the local SubsysReco discards this event
-        if (RejectEvent() != Fun4AllReturnCodes::EVENT_OK)
-        {
-          ResetEvent();
-          //	goto readagain;
-        }
-        else
-        {
-          break;  // got the evt, move on
+          events_total++;
+          events_thisfile++;
+          // check if the local SubsysReco discards this event
+          if (RejectEvent() != Fun4AllReturnCodes::EVENT_OK)
+          {
+            ResetEvent();
+            //	goto readagain;
+          }
+          else
+          {
+            break;  // got the evt, move on
+          }
         }
       }  // loop until retrieve a valid event
 
@@ -198,6 +181,7 @@ int Fun4AllHepMCPileupInputManager::run(const int nevents)
         genevent = geneventmap->insert_background_event();
       }
       assert(genevent);
+      assert(evt);
       genevent->addEvent(evt);
       hepmc_helper.move_vertex(genevent);
       // place to the crossing center in time

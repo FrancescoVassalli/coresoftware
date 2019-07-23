@@ -1,5 +1,8 @@
 #include "PHG4FullProjSpacalCellReco.h"
 
+#include "PHG4Cell.h"                          // for PHG4Cell
+#include "PHG4CylinderGeom.h"                  // for PHG4CylinderGeom
+#include "PHG4CylinderGeom_Spacalv1.h"         // for PHG4CylinderGeom_Spaca...
 #include "PHG4CylinderGeomContainer.h"
 #include "PHG4CylinderGeom_Spacalv3.h"
 #include "PHG4CylinderCellGeomContainer.h"
@@ -10,20 +13,29 @@
 #include "PHG4CellDefs.h"
 #include "PHG4Cellv1.h"
 
+#include <phparameter/PHParameterInterface.h>  // for PHParameterInterface
+
 #include <g4main/PHG4Hit.h>
 #include <g4main/PHG4HitContainer.h>
 
+#include <fun4all/Fun4AllBase.h>               // for Fun4AllBase::VERBOSITY...
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/Fun4AllServer.h>
+#include <fun4all/SubsysReco.h>                // for SubsysReco
 
-#include <phool/PHNodeIterator.h>
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>                      // for PHNode
+#include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>                    // for PHObject
 #include <phool/getClass.h>
+#include <phool/phool.h>                       // for PHWHERE
 
+#include <TAxis.h>                             // for TAxis
 #include <TFile.h>
 #include <TH1.h>
 #include <TH2.h>
+#include <TObject.h>                           // for TObject
 
 #include <boost/foreach.hpp>
 
@@ -32,8 +44,8 @@
 #include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <limits>       // std::numeric_limits
 #include <sstream>
+#include <utility>                             // for pair
 
 
 using namespace std;
@@ -41,7 +53,6 @@ using namespace std;
 PHG4FullProjSpacalCellReco::PHG4FullProjSpacalCellReco(const string &name) :
   SubsysReco(name),
   PHParameterInterface(name),
-  _timer(PHTimeServer::get()->insert_new(name.c_str())), 
   sum_energy_g4hit(0),
   chkenergyconservation(0),
   tmin(NAN),
@@ -106,7 +117,7 @@ PHG4FullProjSpacalCellReco::InitRun(PHCompositeNode *topNode)
       topNode->print();
       exit(1);
     }
-  if (verbosity > 0)
+  if (Verbosity() > 0)
     {
       cout << "PHG4FullProjSpacalCellReco::InitRun - incoming geometry:"
            << endl;
@@ -137,7 +148,7 @@ PHG4FullProjSpacalCellReco::InitRun(PHCompositeNode *topNode)
 	   << layergeom_raw->ClassName() << endl;
       exit(1);
     }
-  if (verbosity > 1)
+  if (Verbosity() > 1)
     {
       layergeom->identify();
     }
@@ -257,7 +268,7 @@ PHG4FullProjSpacalCellReco::InitRun(PHCompositeNode *topNode)
 	      layerseggeo->set_etabounds(sub_tower_etabin,etabounds);
 	      layerseggeo->set_zbounds(sub_tower_etabin,zbounds);
 
-	      if (verbosity >= VERBOSITY_SOME)
+	      if (Verbosity() >= VERBOSITY_SOME)
 	        {
 	          cout << "PHG4FullProjSpacalCellReco::InitRun::" << Name()
                << "\t tower_ID_z = " << tower_ID_z
@@ -281,7 +292,7 @@ PHG4FullProjSpacalCellReco::InitRun(PHCompositeNode *topNode)
 
       // add geo object filled by different binning methods
   seggeo->AddLayerCellGeom(layerseggeo);
-  if (verbosity >= VERBOSITY_SOME)
+  if (Verbosity() >= VERBOSITY_SOME)
     {
       cout << "PHG4FullProjSpacalCellReco::InitRun::" << Name()
 	   << " - Done layer" << (layergeom->get_layer())
@@ -320,7 +331,6 @@ PHG4FullProjSpacalCellReco::InitRun(PHCompositeNode *topNode)
 int
 PHG4FullProjSpacalCellReco::process_event(PHCompositeNode *topNode)
 {
-  _timer.get()->restart();
   PHG4HitContainer *g4hit = findNode::getClass<PHG4HitContainer>(topNode, hitnodename.c_str());
   if (!g4hit)
     {
@@ -462,7 +472,7 @@ PHG4FullProjSpacalCellReco::process_event(PHCompositeNode *topNode)
     {
       cells->AddCell(mapiter->second);
       numcells++;
-      if (verbosity > 1)
+      if (Verbosity() > 1)
 	{
 	  cout << "PHG4FullProjSpacalCellReco::process_event::" << Name()
 	       << " - " << "Adding cell in bin eta "
@@ -477,7 +487,7 @@ PHG4FullProjSpacalCellReco::process_event(PHCompositeNode *topNode)
 	}
     }
   celllist.clear();
-  if (verbosity > 0)
+  if (Verbosity() > 0)
     {
       cout << "PHG4FullProjSpacalCellReco::process_event::" << Name()
 	   << " - " << " found " << numcells
@@ -485,11 +495,10 @@ PHG4FullProjSpacalCellReco::process_event(PHCompositeNode *topNode)
     }
     
 
-  if (chkenergyconservation || verbosity > 4)
+  if (chkenergyconservation || Verbosity() > 4)
     {
       CheckEnergy(topNode);
     }
-  _timer.get()->stop();
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -517,7 +526,7 @@ PHG4FullProjSpacalCellReco::CheckEnergy(PHCompositeNode *topNode)
     }
   else
     {
-      if (verbosity > 0)
+      if (Verbosity() > 0)
         {
           cout << "PHG4FullProjSpacalCellReco::CheckEnergy::" << Name()
               << " - total energy for this event: " << sum_energy_g4hit

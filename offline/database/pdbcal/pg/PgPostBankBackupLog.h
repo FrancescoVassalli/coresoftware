@@ -8,34 +8,24 @@
  * \date $Date: 2014/05/19 17:06:23 $
  */
 
-#ifndef PgPostBankBackupLog_HH_
-#define PgPostBankBackupLog_HH_
-
-#include <pdbcalbase/PdbCalChan.h>
-#include <phool/PHTimeStamp.h>
+#ifndef PDBCAL_PG_PGPOSTBANKBACKUPLOG_H
+#define PDBCAL_PG_PGPOSTBANKBACKUPLOG_H
 
 #include <string>
-#include <vector>
-#include <iostream>
 
 class TSQLConnection;
-class TSQLStatement;
-class ODBCPreparedStatement;
 class TSQLPreparedStatement;
-class TSQLResultSet;
 
 /*!
  * \brief PgPostBankBackupLog
  */
 class PgPostBankBackupLog
 {
-public:
-  PgPostBankBackupLog(const std::string & TableName, const std::string & Tag);
-  virtual
-  ~PgPostBankBackupLog();
+ public:
+  PgPostBankBackupLog(const std::string& TableName, const std::string& Tag);
+  virtual ~PgPostBankBackupLog();
 
-public:
-
+ public:
   //! Sets the verbosity of this module (0 by default=quiet).
   virtual void
   Verbosity(const int ival)
@@ -81,19 +71,17 @@ public:
   void
   Log(const int rid, const enu_ops ops);
 
-protected:
-
+ protected:
   //! The verbosity level. 0 means not verbose at all.
   int verbosity;
 
-  typedef TSQLConnection * TSQLConnection_PTR;
+  typedef TSQLConnection* TSQLConnection_PTR;
   static TSQLConnection_PTR con;
 
   std::string tablename;
   std::string tag;
 
-  TSQLPreparedStatement * pstmt;
-
+  TSQLPreparedStatement* pstmt;
 };
 
-#endif /* PgPostBankBackupLog_HH_ */
+#endif /* PDBCAL_PG_PGPOSTBANKBACKUPLOG_H */

@@ -1,34 +1,40 @@
 #include "Prototype2RawTowerBuilder.h"
+
 #include <calobase/RawTowerContainer.h>
+#include <calobase/RawTowerDefs.h>                      // for convert_name_...
+#include <calobase/RawTowerGeomContainer.h>             // for RawTowerGeomC...
 #include <calobase/RawTowerGeomContainer_Cylinderv1.h>
 #include <calobase/RawTowerGeomv1.h>
+#include <calobase/RawTower.h>                          // for RawTower
 #include <calobase/RawTowerv1.h>
 
+#include <g4detectors/PHG4PrototypeHcalDefs.h>
 #include <g4detectors/PHG4ScintillatorSlat.h>
 #include <g4detectors/PHG4ScintillatorSlatContainer.h>
-#include <g4detectors/PHG4ScintillatorSlatDefs.h>
-#include <g4detectors/PHG4PrototypeHcalDefs.h>
 
 #include <phparameter/PHParameters.h>
-
-#include <g4main/PHG4Utils.h>
+#include <phparameter/PHParameterInterface.h>           // for PHParameterIn...
 
 #include <fun4all/Fun4AllReturnCodes.h>
 #include <fun4all/Fun4AllServer.h>
+#include <fun4all/SubsysReco.h>                         // for SubsysReco
 
-#include <pdbcalbase/PdbParameterMap.h>
 #include <pdbcalbase/PdbParameterMapContainer.h>
 
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
+#include <phool/PHNode.h>                               // for PHNode
 #include <phool/PHNodeIterator.h>
+#include <phool/PHObject.h>                             // for PHObject
 #include <phool/getClass.h>
+#include <phool/phool.h>                                // for PHWHERE
 
 #include <TSystem.h>
 
+#include <cmath>                                       // for fabs, NAN
 #include <iostream>
 #include <map>
-#include <stdexcept>
+#include <utility>                                      // for pair
 
 using namespace std;
 
@@ -84,11 +90,11 @@ int Prototype2RawTowerBuilder::InitRun(PHCompositeNode *topNode)
     PHIODataNode<PHObject> *towerNode = new PHIODataNode<PHObject>(towers, m_TowerNodeName, "PHObject");
     DetNode->addNode(towerNode);
   }
-  // order first default, 
+  // order first default,
   // then parameter from g4detector on node tree
-   ReadParamsFromNodeTree(topNode);
+  ReadParamsFromNodeTree(topNode);
   // then macro setting
-   UpdateParametersWithMacro();
+  UpdateParametersWithMacro();
   PHNodeIterator runIter(runNode);
   PHCompositeNode *RunDetNode = dynamic_cast<PHCompositeNode *>(runIter.findFirst("PHCompositeNode", m_Detector));
   if (!RunDetNode)
@@ -130,7 +136,7 @@ int Prototype2RawTowerBuilder::InitRun(PHCompositeNode *topNode)
     }
   }
 
-  if (verbosity >= 1)
+  if (Verbosity() >= 1)
   {
     cout << "Prototype2RawTowerBuilder::InitRun :";
     if (m_TowerEnergySrc == kEnergyDeposition)
@@ -150,7 +156,7 @@ int Prototype2RawTowerBuilder::InitRun(PHCompositeNode *topNode)
 
 int Prototype2RawTowerBuilder::process_event(PHCompositeNode *topNode)
 {
-  if (verbosity > 3)
+  if (Verbosity() > 3)
   {
     std::cout << PHWHERE << "Process event entered" << std::endl;
   }
@@ -178,7 +184,7 @@ int Prototype2RawTowerBuilder::process_event(PHCompositeNode *topNode)
   {
     PHG4ScintillatorSlat *cell = cell_iter->second;
 
-    if (verbosity > 2)
+    if (Verbosity() > 2)
     {
       std::cout << PHWHERE << " print out the cell:" << std::endl;
       cell->identify();
@@ -222,13 +228,13 @@ int Prototype2RawTowerBuilder::process_event(PHCompositeNode *topNode)
            << cellE - towerE << endl;
     }
   }
-  if (verbosity)
+  if (Verbosity())
   {
     towerE = towers->getTotalEdep();
   }
 
   towers->compress(m_Emin);
-  if (verbosity)
+  if (Verbosity())
   {
     cout << "Energy lost by dropping towers with less than " << m_Emin
          << " energy, lost energy: " << towerE - towers->getTotalEdep()
@@ -263,16 +269,16 @@ void Prototype2RawTowerBuilder::ReadParamsFromNodeTree(PHCompositeNode *topNode)
   PHParameters *pars = new PHParameters("temp");
   // we need the number of scintillator plates per tower
   string geonodename = "G4GEOPARAM_" + m_Detector;
-  PdbParameterMapContainer *saveparams = findNode::getClass<PdbParameterMapContainer>(topNode,geonodename);
-  if (! saveparams)
-    {
-      cout << "could not find " << geonodename << endl;
-      Fun4AllServer *se = Fun4AllServer::instance();
-      se->Print("NODETREE");
-      return;
-    }
-  pars->FillFrom(saveparams,0);
-  set_int_param(PHG4PrototypeHcalDefs::scipertwr,pars->get_int_param(PHG4PrototypeHcalDefs::scipertwr));
+  PdbParameterMapContainer *saveparams = findNode::getClass<PdbParameterMapContainer>(topNode, geonodename);
+  if (!saveparams)
+  {
+    cout << "could not find " << geonodename << endl;
+    Fun4AllServer *se = Fun4AllServer::instance();
+    se->Print("NODETREE");
+    return;
+  }
+  pars->FillFrom(saveparams, 0);
+  set_int_param(PHG4PrototypeHcalDefs::scipertwr, pars->get_int_param(PHG4PrototypeHcalDefs::scipertwr));
   delete pars;
   return;
 }
