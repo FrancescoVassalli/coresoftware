@@ -9,14 +9,16 @@
 #include <phool/PHRandomSeed.h>
 #include <phool/phool.h>                 // for PHWHERE
 
-#include <Rtypes.h>                  // for Float_t, Int_t
+#include <Rtypes.h>                      // for Int_t Float_t
 
 #include <HepMC/GenEvent.h>
+#include <HepMC/HEPEVT_Wrapper.h>        // for HEPEVT_Wrappe
 #include <HepMC/IO_BaseClass.h>          // for IO_BaseClass
 #include <HepMC/IO_GenEvent.h>
 #include <HepMC/IO_HEPEVT.h>
 #include <HepMC/PdfInfo.h>               // for PdfInfo
 #include <HepMC/PythiaWrapper.h>
+#include <HepMC/PythiaWrapper6_4.h>      // for (anonymous), pypars, pydat1
 #include <HepMC/Units.h>                 // for GEV, MM
 
 #include <algorithm>                     // for transform
@@ -24,6 +26,8 @@
 #include <cmath>                        // for fmod
 #include <cstdlib>                      // for exit, abs
 #include <iostream>                      // for operator<<, endl, basic_ostream
+
+class PHHepMCGenEvent;
 
 #define pytune pytune_
 extern "C" int pytune(int *itune);
@@ -75,6 +79,8 @@ int PHPythia6::Init(PHCompositeNode *topNode)
     cout << PHWHERE << " ERROR: seed " << fSeed << " is not valid" << endl;
     exit(2);
   }
+  // print out seed so we can make this is reproducible
+  cout << "PHPythia6 random seed: " << fSeed << endl;
 
   /* read pythia configuration and initialize */
   if (!_configFile.empty()) ReadConfig(_configFile);
